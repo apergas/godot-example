@@ -48,13 +48,15 @@ func _initialize() -> void:
 		_wheel(MOUSE_BUTTON_WHEEL_DOWN, view / 2.0)
 	_check("zoom floored at 0.5", is_equal_approx(cam.zoom.x, 0.5), str(cam.zoom))
 
+	# Below the HUD top bar (44 px), which would swallow the click.
+	var below_bar := Vector2(view.x / 2.0, 60.0)
 	cam.zoom = Vector2.ONE
 	cam.position = center
-	_middle(true, view / 2.0)
-	_motion(Vector2(100, 40), view / 2.0)
+	_middle(true, below_bar)
+	_motion(Vector2(100, 40), below_bar)
 	_check("middle drag pans the camera", cam.position.is_equal_approx(center - Vector2(100, 40)), str(cam.position))
-	_middle(false, view / 2.0)
-	_motion(Vector2(100, 40), view / 2.0)
+	_middle(false, below_bar)
+	_motion(Vector2(100, 40), below_bar)
 	_check("no pan after releasing", cam.position.is_equal_approx(center - Vector2(100, 40)), str(cam.position))
 	quit(1 if _failed > 0 else 0)
 
@@ -65,6 +67,10 @@ func _wheel(button: MouseButton, at: Vector2) -> void:
 	event.pressed = true
 	event.position = at
 	event.global_position = at
+	root.push_input(event)
+	# Real wheel events also send a release; without it the HUD panel under the pointer keeps GUI mouse focus.
+	event = event.duplicate() as InputEventMouseButton
+	event.pressed = false
 	root.push_input(event)
 
 

@@ -6,9 +6,11 @@ const CRYSTAL_SCENE := preload("res://scenes/resources/crystal.tscn")
 const ICE_SCENE := preload("res://scenes/resources/ice.tscn")
 
 @onready var _selection: Selection = $Selection
+@onready var _hud: CanvasLayer = $HUD
 
 
 func _ready() -> void:
+	$Selection.changed.connect(Callable(_hud, "show_for_selection"))
 	_spawn_resources()
 
 
