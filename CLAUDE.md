@@ -1,0 +1,46 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project
+
+2D real-time-strategy prototype (`godot-example`): a StarCraft / Age of Empires style resource-gathering game set in the future, with "rare" resources and **no combat**. The work is done from Claude Code, not the Godot editor, so scenes (`.tscn`) and scripts (`.gd`) are written directly as text files.
+
+Current state: one `Worker` unit that is selected with left click and moved with right click. No resources, buildings or tests yet.
+
+## Layout
+
+- `scenes/main.tscn` — main scene (`run/main_scene`): ground, `Worker`, `Camera2D`. Script: `scripts/main.gd` reads mouse input and issues commands.
+- `scenes/worker.tscn` — `CharacterBody2D` unit. Script: `scripts/worker.gd` (`move_to()`, `contains_point()`, `selected`, drawn with `_draw()`, no art assets).
+- `tools/` — local, git-ignored tooling: portable Node (`tools/node`), the Godot MCP server (`tools/godot-mcp`) and the `tools/godot.cmd` wrapper.
+- `.mcp.json` — registers the `godot` MCP server; `GODOT_PATH` points at the Godot 4.7.2 console exe in `Downloads`.
+
+## Engine configuration (from `project.godot`)
+
+- Godot **4.7**, GL Compatibility renderer (also used on mobile).
+- 3D physics: **Jolt Physics**.
+- Windows rendering driver: d3d12.
+- Stretch mode `canvas_items`, aspect `expand`.
+- `.editorconfig` enforces UTF-8.
+
+## Commands
+
+`godot` is not on the system PATH. Use the wrapper `tools\godot.cmd` (forwards all arguments to the console exe):
+
+```powershell
+.\tools\godot.cmd --path . --quit-after 60 --headless
+```
+
+Run the game: `.\tools\godot.cmd --path .`. Run a specific scene: `.\tools\godot.cmd --path . res://scenes/worker.tscn`. Open the editor only if needed: `.\tools\godot.cmd --editor --path .`.
+
+Validate a script: `.\tools\godot.cmd --headless --path . --check-only --script res://scripts/worker.gd`.
+
+Behaviour checks without a window: write a `SceneTree` script (`extends SceneTree`, `_initialize()`, `await physics_frame`, `print`, `quit()`) outside the project (e.g. in the scratchpad) and run it with `--headless --script <path>`. No test framework (GUT/gdUnit4) is installed.
+
+The `godot` MCP tools (`run_project`, `get_debug_output`, `create_scene`, `add_node`, ...) need `projectPath` set to this directory.
+
+## Notes
+
+- `.godot/` is the editor's generated cache; never edit it by hand.
+- `project.godot` can be edited by hand for small changes (e.g. `run/main_scene`); the editor rewrites it on save.
+- Git is not yet usable here: it is not installed on this machine (see below).

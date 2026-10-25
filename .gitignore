@@ -1,0 +1,7 @@
+# Godot 4+ specific ignores
+.godot/
+/android/
+
+# Local tooling (portable Node, MCP server, godot.cmd wrapper)
+/tools/
+.mcp.json
