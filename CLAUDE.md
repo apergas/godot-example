@@ -61,6 +61,8 @@ Never commit directly to `main` or `develop`.
 - `release/<version>` — branched from `develop` when preparing a release; merged into `main` (tag `v<version>`) and back into `develop`.
 - `hotfix/<name>` — branched from `main` for urgent fixes; merged into `main` (tag) and `develop`.
 
+Once a branch is merged and pushed (`origin/develop`, or `origin/main` for release/hotfix), delete it locally and on the remote: `git branch -d <branch>` and `git push origin --delete <branch>`. Check first with `git branch -r --merged origin/develop`.
+
 ## Deploy (GitHub Pages)
 
 `.github/workflows/deploy-pages.yml` downloads Godot 4.7.2 (Linux) and its web export templates, runs `--import`, exports the "Web" preset to `build/web/` and publishes it with `actions/deploy-pages`. It runs on push to `main` and manually (`workflow_dispatch`). One-time repo setting: Settings > Pages > Source = "GitHub Actions". The "Web" preset keeps `variant/thread_support=false`, because GitHub Pages cannot send the COOP/COEP headers a threaded build needs. When upgrading Godot, change `GODOT_VERSION` in the workflow too.
