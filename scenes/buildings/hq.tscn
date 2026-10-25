@@ -1,0 +1,22 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/buildings/hq.gd" id="1_hq"]
+[ext_resource type="Texture2D" path="res://assets/hq.png" id="2_tex"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_hq"]
+size = Vector2(176, 176)
+
+[node name="HQ" type="StaticBody2D"]
+script = ExtResource("1_hq")
+footprint = Vector2i(3, 3)
+accepts_kinds = Array[int]([0, 1])
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(2, 2)
+texture = ExtResource("2_tex")
+centered = false
+offset = Vector2(-48, -128)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -96)
+shape = SubResource("RectangleShape2D_hq")
