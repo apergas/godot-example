@@ -15,6 +15,7 @@ const CARRY_MAX := 10
 const GATHER_SECONDS := {ResKind.CRYSTAL: 3.0, ResKind.ICE: 4.0}
 const GATHER_RANGE := 96.0
 const DROPOFF_RANGE := 48.0
+const SEARCH_TILES := 6
 const SEPARATION_DISTANCE := 24.0
 const SEPARATION_SPEED := 120.0
 const SEPARATION_DEADZONE := 0.02
@@ -204,14 +205,34 @@ func _deliver() -> void:
 		_stop()
 
 
-## The current node is gone: give up (replaced in task 8 by a search for a nearby node).
+## The current node is gone: move on to the nearest node of the same kind around it.
 func _retarget() -> void:
-	_gather_node = null
-	_gather_kind = -1
-	_stop()
+	var next := _find_resource_near(_gather_kind, _gather_pos)
+	if next == null:
+		_gather_node = null
+		_gather_kind = -1
+		_stop()
+		return
+	_gather_node = next
+	_gather_pos = next.global_position
+	_go_to_resource()
 
 
-func _node_alive(node: ResourceNode) -> bool:
+func _find_resource_near(kind: int, center: Vector2) -> ResourceNode:
+	var best: ResourceNode = null
+	var best_dist := float(SEARCH_TILES * Grid.TILE)
+	for node in get_tree().get_nodes_in_group("resources"):
+		var res := node as ResourceNode
+		if res == null or res.kind != kind or res.amount <= 0 or res.is_queued_for_deletion():
+			continue
+		var d := center.distance_to(res.global_position)
+		if d <= best_dist:
+			best_dist = d
+			best = res
+	return best
+
+
+func _node_alive(node: Variant) -> bool:
 	return is_instance_valid(node) and not node.is_queued_for_deletion()
 
 
