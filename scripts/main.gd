@@ -14,6 +14,10 @@ func _ready() -> void:
 	_spawn_resources()
 
 
+func _process(_delta: float) -> void:
+	_update_hover()
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
 		_selection.update_drag(get_global_mouse_position())
@@ -68,3 +72,22 @@ func _spawn_resource(scene: PackedScene, c: Vector2i) -> ResourceNode:
 	node.position = Grid.cell_to_world(c) + Vector2(0, Grid.TILE / 2.0 - 4)
 	$World.add_child(node)
 	return node
+
+
+func _update_hover() -> void:
+	var res := _resource_at(get_global_mouse_position())
+	if res == null:
+		_hud.hide_hover()
+		return
+	_hud.show_hover("%s: %d" % [ResKind.NAMES[res.kind], res.amount], get_viewport().get_mouse_position())
+
+
+func _resource_at(point: Vector2) -> ResourceNode:
+	var best: ResourceNode = null
+	for node in get_tree().get_nodes_in_group("resources"):
+		var res := node as ResourceNode
+		if res == null or res.is_queued_for_deletion() or not res.contains_point(point):
+			continue
+		if best == null or res.global_position.y > best.global_position.y:
+			best = res
+	return best
