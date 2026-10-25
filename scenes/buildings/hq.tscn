@@ -9,6 +9,7 @@ size = Vector2(176, 176)
 [node name="HQ" type="StaticBody2D"]
 script = ExtResource("1_hq")
 footprint = Vector2i(3, 3)
+pop_cap_bonus = 5
 accepts_kinds = Array[int]([0, 1])
 
 [node name="Sprite2D" type="Sprite2D" parent="."]

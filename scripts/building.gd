@@ -3,15 +3,18 @@ class_name Building extends StaticBody2D
 
 signal completed
 
+const GameStateScript := preload("res://scripts/game_state.gd")
 const SELECT_COLOR := Color(0.3, 1.0, 0.4)
 
 @export var footprint := Vector2i(2, 2)
 @export var accepts_kinds: Array[int] = []
 @export var build_time := 10.0
+@export var pop_cap_bonus := 0
 
 var cell: Vector2i
 var built := true
 var build_progress := 0.0
+var _pop_cap_applied := false
 var selected := false:
 	set(value):
 		selected = value
@@ -24,9 +27,12 @@ func _ready() -> void:
 	if not accepts_kinds.is_empty():
 		add_to_group("dropoffs")
 	_set_nav_blocked(true)
+	completed.connect(_on_completed_pop_cap)
+	_sync_pop_cap.call_deferred()
 
 
 func _exit_tree() -> void:
+	_set_pop_cap_applied(false)
 	_set_nav_blocked(false)
 
 
@@ -40,6 +46,24 @@ func accepts(kind: int) -> bool:
 
 func contains_point(p: Vector2) -> bool:
 	return _pick_rect().has_point(p)
+
+
+func _sync_pop_cap() -> void:
+	if is_inside_tree():
+		_set_pop_cap_applied(built)
+
+
+func _on_completed_pop_cap() -> void:
+	_set_pop_cap_applied(true)
+
+
+func _set_pop_cap_applied(on: bool) -> void:
+	if on == _pop_cap_applied or pop_cap_bonus == 0:
+		return
+	_pop_cap_applied = on
+	var gs := get_node_or_null("/root/GameState") as GameStateScript
+	if gs:
+		gs.add_cap(pop_cap_bonus if on else -pop_cap_bonus)
 
 
 func _set_nav_blocked(blocked: bool) -> void:
