@@ -1,7 +1,12 @@
+class_name Worker
 extends CharacterBody2D
 
+enum State { IDLE, MOVING, TO_RESOURCE, GATHERING, TO_DROPOFF, TO_BUILD, BUILDING }
+
+const NavScript := preload("res://scripts/nav.gd")
 const RADIUS := 20.0
 const ARRIVE_DISTANCE := 4.0
+const STUCK_SECONDS := 0.5
 # The origin is at the feet; the body (and the sprite centre) sits above it.
 const BODY_OFFSET := Vector2(0.0, -22.0)
 const WALK_FPS := 8.0
@@ -22,8 +27,11 @@ var selected := false:
 		selected = value
 		queue_redraw()
 
-var _target := Vector2.ZERO
-var _moving := false
+var state: State = State.IDLE
+
+var _path := PackedVector2Array()
+var _path_index := 0
+var _stuck_time := 0.0
 var _walk_time := 0.0
 var _row := ROW_DOWN
 
@@ -35,8 +43,8 @@ func _ready() -> void:
 
 
 func move_to(point: Vector2) -> void:
-	_target = point
-	_moving = true
+	_set_path(point)
+	state = State.MOVING
 
 
 func contains_point(point: Vector2) -> bool:
@@ -61,18 +69,64 @@ static func separation_push(pos: Vector2, self_id: int, others: PackedVector2Arr
 
 func _physics_process(delta: float) -> void:
 	var push := _separation()
-	if _moving:
-		var offset := _target - global_position
-		if offset.length() > ARRIVE_DISTANCE:
-			velocity = offset.normalized() * speed + push * SEPARATION_SPEED
-			move_and_slide()
-			_face(velocity)
-			_walk_time += delta
-			_update_frame()
-			return
-		_moving = false
-		_walk_time = 0.0
-		_update_frame()
+	match state:
+		State.MOVING:
+			if _follow_path(delta, push):
+				_stop()
+		_:
+			_nudge(push)
+
+
+func _set_path(point: Vector2) -> void:
+	var nav := get_node_or_null("/root/Nav") as NavScript
+	_path = nav.find_path(global_position, point) if nav != null else PackedVector2Array([point])
+	_path_index = 0
+	_stuck_time = 0.0
+
+
+## Walks along _path. Returns true when the path is finished or the robot is stuck.
+func _follow_path(delta: float, push: Vector2) -> bool:
+	if _path_index >= _path.size():
+		velocity = Vector2.ZERO
+		return true
+	var to_target := _path[_path_index] - global_position
+	if to_target.length() <= ARRIVE_DISTANCE:
+		_path_index += 1
+		if _path_index >= _path.size():
+			velocity = Vector2.ZERO
+			return true
+		to_target = _path[_path_index] - global_position
+	var dist := to_target.length()
+	var step := speed * delta
+	var heading := to_target / dist if dist > 0.0 else Vector2.ZERO
+	velocity = (to_target / delta if dist < step else heading * speed) + push * SEPARATION_SPEED
+	var before := global_position
+	move_and_slide()
+	if before.distance_to(global_position) < minf(step, dist) * 0.1:
+		_stuck_time += delta
+		if _stuck_time >= STUCK_SECONDS:
+			velocity = Vector2.ZERO
+			return true
+	else:
+		_stuck_time = 0.0
+	# Face the path direction, not the velocity: the separation push would make it flicker.
+	_face(heading)
+	_walk_time += delta
+	_update_frame()
+	return false
+
+
+func _stop() -> void:
+	state = State.IDLE
+	_path = PackedVector2Array()
+	_path_index = 0
+	velocity = Vector2.ZERO
+	_walk_time = 0.0
+	_update_frame()
+
+
+## Soft separation while not walking: drift away from overlapping robots.
+func _nudge(push: Vector2) -> void:
 	if push.length() < SEPARATION_DEADZONE:
 		velocity = Vector2.ZERO
 		return
