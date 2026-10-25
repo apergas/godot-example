@@ -16,6 +16,13 @@ const GATHER_SECONDS := {ResKind.CRYSTAL: 3.0, ResKind.ICE: 4.0}
 const GATHER_RANGE := 96.0
 const DROPOFF_RANGE := 48.0
 const SEARCH_TILES := 6
+const CARGO_Y := -64.0
+const CRYSTAL_LIGHT := Color("a8fbff")
+const CRYSTAL_MID := Color("38d8f0")
+const CRYSTAL_DARK := Color("0f6e86")
+const ICE_LIGHT := Color("e8f6ff")
+const ICE_MID := Color("b8dcf0")
+const ICE_DARK := Color("6fa3c4")
 const SEPARATION_DISTANCE := 24.0
 const SEPARATION_SPEED := 120.0
 const SEPARATION_DEADZONE := 0.02
@@ -366,3 +373,24 @@ func _draw() -> void:
 	draw_circle(Vector2.ZERO, 17.0, Color(0.0, 0.0, 0.0, 0.35))
 	if selected:
 		draw_arc(Vector2.ZERO, RADIUS + 8.0, 0.0, TAU, 32, Color(0.3, 1.0, 0.4), 2.0)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	if carry_amount > 0:
+		_draw_cargo(Vector2(0.0, CARGO_Y))
+
+
+## Small crystal or ice block floating over the head while the robot carries something.
+func _draw_cargo(at: Vector2) -> void:
+	if carry_kind == ResKind.CRYSTAL:
+		draw_colored_polygon(PackedVector2Array([
+			at + Vector2(0, -10), at + Vector2(8, -2), at + Vector2(0, 10), at + Vector2(-8, -2),
+		]), CRYSTAL_DARK)
+		draw_colored_polygon(PackedVector2Array([
+			at + Vector2(0, -8), at + Vector2(6, -2), at + Vector2(0, 8), at + Vector2(-6, -2),
+		]), CRYSTAL_MID)
+		draw_colored_polygon(PackedVector2Array([
+			at + Vector2(0, -8), at + Vector2(0, 8), at + Vector2(-6, -2),
+		]), CRYSTAL_LIGHT)
+	else:
+		draw_rect(Rect2(at - Vector2(8, 6), Vector2(16, 12)), ICE_DARK)
+		draw_rect(Rect2(at - Vector2(6, 4), Vector2(12, 8)), ICE_MID)
+		draw_rect(Rect2(at - Vector2(6, 4), Vector2(12, 2)), ICE_LIGHT)
