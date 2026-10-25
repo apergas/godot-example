@@ -49,4 +49,18 @@ The `godot` MCP tools (`run_project`, `get_debug_output`, `create_scene`, `add_n
 
 - `.godot/` is the editor's generated cache; never edit it by hand.
 - `project.godot` can be edited by hand for small changes (e.g. `run/main_scene`); the editor rewrites it on save.
-- Git 2.56 is installed (`C:\Program Files\Git\cmd`), but it may not be on the PATH of already-open shells; call `& "C:\Program Files\Git\cmd\git.exe"` if `git` is not found. Repo branch: `main`. Commit the generated `.uid` files alongside their scripts.
+- Git 2.56 is installed (`C:\Program Files\Git\cmd`), but it may not be on the PATH of already-open shells; call `& "C:\Program Files\Git\cmd\git.exe"` if `git` is not found. Remote: `origin` = `https://github.com/apergas/godot-example`. Commit the generated `.uid` files alongside their scripts.
+
+## Git workflow (gitflow)
+
+Never commit directly to `main` or `develop`.
+
+- `main` — released versions only; every push to it deploys to GitHub Pages.
+- `develop` — integration branch; default base for new work.
+- `feature/<name>` — branched from `develop`, merged back into `develop` with `git merge --no-ff`.
+- `release/<version>` — branched from `develop` when preparing a release; merged into `main` (tag `v<version>`) and back into `develop`.
+- `hotfix/<name>` — branched from `main` for urgent fixes; merged into `main` (tag) and `develop`.
+
+## Deploy (GitHub Pages)
+
+`.github/workflows/deploy-pages.yml` downloads Godot 4.7.2 (Linux) and its web export templates, runs `--import`, exports the "Web" preset to `build/web/` and publishes it with `actions/deploy-pages`. It runs on push to `main` and manually (`workflow_dispatch`). One-time repo setting: Settings > Pages > Source = "GitHub Actions". The "Web" preset keeps `variant/thread_support=false`, because GitHub Pages cannot send the COOP/COEP headers a threaded build needs. When upgrading Godot, change `GODOT_VERSION` in the workflow too.
