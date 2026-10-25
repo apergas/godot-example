@@ -44,11 +44,24 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func command_move(point: Vector2) -> void:
-	var workers: Array = []
-	for item in _selection.items:
-		if is_instance_valid(item) and item.is_in_group("workers"):
-			workers.append(item)
+	_order_workers(_selected_workers(), point)
+
+
+func _order_workers(workers: Array, point: Vector2) -> void:
 	if workers.is_empty():
+		return
+	var node := _resource_at(point)
+	if node != null:
+		for worker in workers:
+			worker.gather(node)
+		return
+	var building := _building_at(point)
+	if building != null:
+		for worker in workers:
+			if worker.carry_amount > 0 and building.accepts(worker.carry_kind):
+				worker.return_cargo(building)
+			else:
+				worker.move_to(point)
 		return
 	# Closest robots take the inner slots, so the group does not cross over itself.
 	workers.sort_custom(func(a: Node2D, b: Node2D) -> bool: return a.global_position.distance_squared_to(point) < b.global_position.distance_squared_to(point))
@@ -56,6 +69,22 @@ func command_move(point: Vector2) -> void:
 	for i in workers.size():
 		workers[i].move_to(targets[i])
 	_spawn_marker(targets[0])
+
+
+func _selected_workers() -> Array:
+	var result: Array = []
+	for item in _selection.items:
+		if is_instance_valid(item) and item.is_in_group("workers"):
+			result.append(item)
+	return result
+
+
+func _building_at(point: Vector2) -> Building:
+	for node in get_tree().get_nodes_in_group("buildings"):
+		var building := node as Building
+		if building != null and building.contains_point(point):
+			return building
+	return null
 
 
 func _spawn_marker(point: Vector2) -> void:
