@@ -13,7 +13,8 @@ const WORKER_SCENE := preload("res://scenes/worker.tscn")
 
 
 func _ready() -> void:
-	$Selection.changed.connect(Callable(_hud, "show_for_selection"))
+	_hud.connect("train_requested", _on_train_requested)
+	_selection.changed.connect(Callable(_hud, "show_for_selection"))
 	_spawn_resources()
 	var hq := _spawn_hq()
 	_spawn_workers()
@@ -69,6 +70,12 @@ func _order_workers(workers: Array, point: Vector2) -> void:
 	for i in workers.size():
 		workers[i].move_to(targets[i])
 	_spawn_marker(targets[0])
+
+
+func _on_train_requested() -> void:
+	for item in _selection.items:
+		if is_instance_valid(item) and item is HQ:
+			item.enqueue_worker()
 
 
 func _selected_workers() -> Array:
