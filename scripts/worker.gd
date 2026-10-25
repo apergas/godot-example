@@ -2,7 +2,8 @@ extends CharacterBody2D
 
 const RADIUS := 20.0
 const ARRIVE_DISTANCE := 4.0
-const FEET_Y := 22.0
+# The origin is at the feet; the body (and the sprite centre) sits above it.
+const BODY_OFFSET := Vector2(0.0, -22.0)
 const WALK_FPS := 8.0
 
 # Rows of the spritesheet (see art_src/make_worker.gd); columns are walk phases.
@@ -26,13 +27,17 @@ var _row := ROW_DOWN
 @onready var _sprite: Sprite2D = $Sprite2D
 
 
+func _ready() -> void:
+	add_to_group("workers")
+
+
 func move_to(point: Vector2) -> void:
 	_target = point
 	_moving = true
 
 
 func contains_point(point: Vector2) -> bool:
-	return global_position.distance_to(point) <= RADIUS + 4.0
+	return (global_position + BODY_OFFSET).distance_to(point) <= RADIUS + 4.0
 
 
 func _physics_process(delta: float) -> void:
@@ -66,8 +71,8 @@ func _update_frame() -> void:
 
 
 func _draw() -> void:
-	# Both shapes are flattened ellipses on the ground, to match the 3/4 view.
-	draw_set_transform(Vector2(0.0, FEET_Y), 0.0, Vector2(1.0, 0.35))
+	# Both shapes are flattened ellipses on the ground at the feet, to match the 3/4 view.
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2(1.0, 0.35))
 	draw_circle(Vector2.ZERO, 17.0, Color(0.0, 0.0, 0.0, 0.35))
 	if selected:
 		draw_arc(Vector2.ZERO, RADIUS + 8.0, 0.0, TAU, 32, Color(0.3, 1.0, 0.4), 2.0)

@@ -4,13 +4,15 @@
 [ext_resource type="Texture2D" path="res://assets/worker.png" id="2_tex"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_worker"]
-radius = 20.0
+radius = 10.0
 
 [node name="Worker" type="CharacterBody2D"]
+collision_layer = 2
 motion_mode = 1
 script = ExtResource("1_worker")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
+position = Vector2(0, -22)
 scale = Vector2(2, 2)
 texture = ExtResource("2_tex")
 hframes = 4
