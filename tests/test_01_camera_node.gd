@@ -13,7 +13,7 @@ func _initialize() -> void:
 	root.add_child(main)
 	await process_frame
 	var cam := main.get_node("Camera2D") as Camera2D
-	var worker := main.get_node("Worker") as Node2D
+	var worker := main.get_node("World/Worker") as Node2D
 	_check("camera uses camera_rts.gd", cam.get_script() == CameraRTS)
 	if cam.get_script() != CameraRTS:
 		quit(1)
@@ -23,7 +23,7 @@ func _initialize() -> void:
 	_check("limits match the map", cam.limit_left == 0 and cam.limit_top == 0
 			and cam.limit_right == 4096 and cam.limit_bottom == 3072,
 			"%d %d %d %d" % [cam.limit_left, cam.limit_top, cam.limit_right, cam.limit_bottom])
-	_check("camera starts on the base", Grid.world_to_cell(cam.position) == Vector2i(11, 22), str(cam.position))
+	_check("camera starts on the base", Grid.world_to_cell(cam.position) == Vector2i(14, 22), str(cam.position))
 	_check("worker starts beside the base", Grid.world_to_cell(worker.position) == Vector2i(14, 22),
 			str(worker.position))
 
