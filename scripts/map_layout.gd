@@ -26,3 +26,20 @@ const CRATERS: Array[Vector2i] = [
 	Vector2i(26, 28),
 	Vector2i(46, 40),
 ]
+
+# Near crystal field (indices 0..7), then far field around (50, 10) (indices 8..15).
+const CRYSTAL_CELLS: Array[Vector2i] = [
+	Vector2i(17, 19), Vector2i(18, 20), Vector2i(17, 21), Vector2i(18, 22),
+	Vector2i(17, 23), Vector2i(18, 24), Vector2i(19, 21), Vector2i(19, 23),
+	Vector2i(49, 8), Vector2i(50, 8), Vector2i(51, 9), Vector2i(48, 10),
+	Vector2i(52, 10), Vector2i(49, 11), Vector2i(51, 11), Vector2i(50, 12),
+]
+
+# Ice blocks, far from the base on purpose (a depot there pays off in phase 7).
+const ICE_CELLS: Array[Vector2i] = [
+	Vector2i(30, 33), Vector2i(31, 32), Vector2i(32, 34), Vector2i(33, 33),
+	Vector2i(34, 32), Vector2i(35, 34), Vector2i(36, 33), Vector2i(37, 35),
+	Vector2i(30, 36), Vector2i(31, 37), Vector2i(33, 36), Vector2i(34, 38),
+	Vector2i(35, 37), Vector2i(36, 39), Vector2i(37, 38), Vector2i(31, 40),
+	Vector2i(32, 39), Vector2i(33, 40), Vector2i(35, 40), Vector2i(30, 39),
+]

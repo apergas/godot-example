@@ -25,7 +25,7 @@ func _initialize() -> void:
 		return
 
 	selection.select(workers)
-	var target := Vector2(1200, 1400)
+	var target := Vector2(1000, 1150)
 	main.command_move(target)
 	var marker_script: GDScript = load("res://scripts/order_marker.gd")
 	var markers := 0
