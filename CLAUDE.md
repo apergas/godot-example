@@ -43,4 +43,4 @@ The `godot` MCP tools (`run_project`, `get_debug_output`, `create_scene`, `add_n
 
 - `.godot/` is the editor's generated cache; never edit it by hand.
 - `project.godot` can be edited by hand for small changes (e.g. `run/main_scene`); the editor rewrites it on save.
-- Git is not yet usable here: it is not installed on this machine (see below).
+- Git 2.56 is installed (`C:\Program Files\Git\cmd`), but it may not be on the PATH of already-open shells; call `& "C:\Program Files\Git\cmd\git.exe"` if `git` is not found. Repo branch: `main`. Commit the generated `.uid` files alongside their scripts.
