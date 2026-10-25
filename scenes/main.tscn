@@ -1,7 +1,6 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
-[ext_resource type="PackedScene" path="res://scenes/worker.tscn" id="2_worker"]
 [ext_resource type="TileSet" path="res://assets/ground_tiles.tres" id="3_tileset"]
 [ext_resource type="Script" path="res://scripts/ground.gd" id="4_ground"]
 [ext_resource type="Script" path="res://scripts/camera_rts.gd" id="5_camera"]
@@ -19,15 +18,6 @@ script = ExtResource("4_ground")
 
 [node name="World" type="Node2D" parent="."]
 y_sort_enabled = true
-
-[node name="Worker" parent="World" instance=ExtResource("2_worker")]
-position = Vector2(896, 1440)
-
-[node name="Worker2" parent="World" instance=ExtResource("2_worker")]
-position = Vector2(960, 1440)
-
-[node name="Worker3" parent="World" instance=ExtResource("2_worker")]
-position = Vector2(928, 1504)
 
 [node name="Selection" type="Node2D" parent="."]
 z_index = 100

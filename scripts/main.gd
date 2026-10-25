@@ -4,14 +4,20 @@ const FORMATION_SPACING := 40.0
 const OrderMarker := preload("res://scripts/order_marker.gd")
 const CRYSTAL_SCENE := preload("res://scenes/resources/crystal.tscn")
 const ICE_SCENE := preload("res://scenes/resources/ice.tscn")
+const HQ_SCENE := preload("res://scenes/buildings/hq.tscn")
+const WORKER_SCENE := preload("res://scenes/worker.tscn")
 
 @onready var _selection: Selection = $Selection
 @onready var _hud: CanvasLayer = $HUD
+@onready var _world: Node2D = $World
 
 
 func _ready() -> void:
 	$Selection.changed.connect(Callable(_hud, "show_for_selection"))
 	_spawn_resources()
+	var hq := _spawn_hq()
+	_spawn_workers()
+	($Camera2D as Camera2D).position = hq.position + Vector2(0.0, -Grid.TILE * 1.5)
 
 
 func _process(_delta: float) -> void:
@@ -91,3 +97,18 @@ func _resource_at(point: Vector2) -> ResourceNode:
 		if best == null or res.global_position.y > best.global_position.y:
 			best = res
 	return best
+
+
+func _spawn_hq() -> HQ:
+	var hq := HQ_SCENE.instantiate() as HQ
+	hq.position = Grid.footprint_origin(MapLayout.HQ_CELL, hq.footprint)
+	_world.add_child(hq)
+	return hq
+
+
+func _spawn_workers() -> void:
+	for i in MapLayout.START_WORKERS:
+		var worker := WORKER_SCENE.instantiate() as Node2D
+		var cell := Vector2i(MapLayout.HQ_CELL.x + i % 3, MapLayout.HQ_CELL.y + 3 + floori(i / 3.0))
+		worker.position = Grid.cell_to_world(cell)
+		_world.add_child(worker)
