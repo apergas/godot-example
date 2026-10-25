@@ -18,10 +18,16 @@ var _pop_cap_applied := false
 var selected := false:
 	set(value):
 		selected = value
-		queue_redraw()
+		redraw_overlay()
+var _overlay: Node2D
 
 
 func _ready() -> void:
+	_overlay = Node2D.new()
+	_overlay.name = "Overlay"
+	_overlay.z_index = 1
+	_overlay.draw.connect(_draw_overlay)
+	add_child(_overlay)
 	cell = Grid.footprint_cell(global_position, footprint)
 	add_to_group("buildings")
 	if not accepts_kinds.is_empty():
@@ -83,8 +89,16 @@ func _pick_rect() -> Rect2:
 	return rect
 
 
-func _draw() -> void:
+func redraw_overlay() -> void:
+	if _overlay != null:
+		_overlay.queue_redraw()
+
+
+func _draw_overlay() -> void:
 	if not selected:
 		return
 	var size := Vector2(footprint * Grid.TILE)
-	draw_rect(Rect2(Vector2(-size.x / 2.0, -size.y), size).grow(4.0), SELECT_COLOR, false, 2.0)
+	# Flattened ellipse around the footprint, like the worker's ring.
+	_overlay.draw_set_transform(Vector2(0.0, -size.y * 0.5), 0.0, Vector2(1.0, 0.6))
+	_overlay.draw_arc(Vector2.ZERO, size.x * 0.5 + 8.0, 0.0, TAU, 48, SELECT_COLOR, 2.0)
+	_overlay.draw_set_transform(Vector2.ZERO)
