@@ -1,6 +1,6 @@
 extends CharacterBody2D
 
-const RADIUS := 14.0
+const RADIUS := 20.0
 const ARRIVE_DISTANCE := 4.0
 
 @export var speed := 180.0
@@ -12,6 +12,8 @@ var selected := false:
 
 var _target := Vector2.ZERO
 var _moving := false
+
+@onready var _sprite: Sprite2D = $Sprite2D
 
 
 func move_to(point: Vector2) -> void:
@@ -32,11 +34,10 @@ func _physics_process(_delta: float) -> void:
 		velocity = Vector2.ZERO
 		return
 	velocity = offset.normalized() * speed
+	_sprite.rotation = velocity.angle() + PI / 2.0  # sprite faces up
 	move_and_slide()
 
 
 func _draw() -> void:
-	draw_circle(Vector2.ZERO, RADIUS, Color(0.3, 0.8, 1.0))
-	draw_arc(Vector2.ZERO, RADIUS, 0.0, TAU, 24, Color(0.05, 0.2, 0.3), 2.0)
 	if selected:
-		draw_arc(Vector2.ZERO, RADIUS + 5.0, 0.0, TAU, 32, Color(0.3, 1.0, 0.4), 2.0)
+		draw_arc(Vector2.ZERO, RADIUS + 8.0, 0.0, TAU, 32, Color(0.3, 1.0, 0.4), 2.0)
