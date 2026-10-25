@@ -8,3 +8,6 @@
 
 # Exports
 /build/
+
+# Plans (local only, not versioned)
+/plans/
