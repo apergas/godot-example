@@ -1,0 +1,70 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/hud.gd" id="1_hud"]
+[ext_resource type="Texture2D" path="res://assets/crystal.png" id="2_crystal"]
+[ext_resource type="Texture2D" path="res://assets/ice.png" id="3_ice"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_crystal"]
+atlas = ExtResource("2_crystal")
+region = Rect2(0, 8, 32, 36)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ice"]
+atlas = ExtResource("3_ice")
+region = Rect2(0, 8, 32, 36)
+
+[node name="HUD" type="CanvasLayer"]
+layer = 10
+script = ExtResource("1_hud")
+
+[node name="TopBar" type="PanelContainer" parent="."]
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 44.0
+grow_horizontal = 2
+
+[node name="Row" type="HBoxContainer" parent="TopBar"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="CrystalIcon" type="TextureRect" parent="TopBar/Row"]
+custom_minimum_size = Vector2(32, 36)
+layout_mode = 2
+texture = SubResource("AtlasTexture_crystal")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="CrystalLabel" type="Label" parent="TopBar/Row"]
+custom_minimum_size = Vector2(72, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.66, 0.98, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 22
+text = "0"
+vertical_alignment = 1
+
+[node name="IceIcon" type="TextureRect" parent="TopBar/Row"]
+custom_minimum_size = Vector2(32, 36)
+layout_mode = 2
+texture = SubResource("AtlasTexture_ice")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="IceLabel" type="Label" parent="TopBar/Row"]
+custom_minimum_size = Vector2(72, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.91, 0.96, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 22
+text = "0"
+vertical_alignment = 1
+
+[node name="HoverLabel" type="Label" parent="."]
+visible = false
+offset_right = 140.0
+offset_bottom = 28.0
+mouse_filter = 2
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 18
