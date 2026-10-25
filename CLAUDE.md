@@ -37,6 +37,8 @@ Validate a script: `.\tools\godot.cmd --headless --path . --check-only --script 
 
 Behaviour checks without a window: write a `SceneTree` script (`extends SceneTree`, `_initialize()`, `await physics_frame`, `print`, `quit()`) outside the project (e.g. in the scratchpad) and run it with `--headless --script <path>`. No test framework (GUT/gdUnit4) is installed.
 
+Web build: export templates (web only) are in `%APPDATA%\Godot\export_templates\4.7.2.stable`; `export_presets.cfg` has a "Web" preset. Export with `.\tools\godot.cmd --headless --path . --export-release Web build/web/index.html` (`build/` is git-ignored), then serve with `powershell -File .\tools\serve_web.ps1` and open `http://localhost:8060/`. Browsers need HTTP, not `file://`. `tools/.gdignore` keeps Godot from scanning/packing `tools/`.
+
 The `godot` MCP tools (`run_project`, `get_debug_output`, `create_scene`, `add_node`, ...) need `projectPath` set to this directory.
 
 ## Notes

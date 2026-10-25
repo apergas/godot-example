@@ -5,3 +5,6 @@
 # Local tooling (portable Node, MCP server, godot.cmd wrapper)
 /tools/
 .mcp.json
+
+# Exports
+/build/
