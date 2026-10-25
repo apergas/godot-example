@@ -43,3 +43,6 @@ const ICE_CELLS: Array[Vector2i] = [
 	Vector2i(35, 37), Vector2i(36, 39), Vector2i(37, 38), Vector2i(31, 40),
 	Vector2i(32, 39), Vector2i(33, 40), Vector2i(35, 40), Vector2i(30, 39),
 ]
+
+const HQ_CELL := Vector2i(10, 21)
+const START_WORKERS := 3
