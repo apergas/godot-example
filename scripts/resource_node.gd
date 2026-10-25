@@ -24,6 +24,11 @@ func _ready() -> void:
 	cell = Grid.world_to_cell(global_position - Vector2(0, 1))
 	max_amount = amount
 	_update_frame()
+	_set_nav_blocked(true)
+
+
+func _exit_tree() -> void:
+	_set_nav_blocked(false)
 
 
 func take(n: int) -> int:
@@ -53,3 +58,10 @@ func variant() -> int:
 
 func _update_frame() -> void:
 	_sprite.frame = LOW_FRAME if is_low() else variant()
+
+
+# Looked up by path: class_name scripts compile before autoloads exist in --script runs.
+func _set_nav_blocked(blocked: bool) -> void:
+	var nav := get_node_or_null("/root/Nav")
+	if nav:
+		nav.set_blocked(Rect2i(cell, Vector2i.ONE), blocked)
