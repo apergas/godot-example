@@ -218,7 +218,10 @@ func _retarget() -> void:
 	if next == null:
 		_gather_node = null
 		_gather_kind = -1
-		_stop()
+		if carry_amount > 0:
+			_go_to_dropoff(null)
+		else:
+			_stop()
 		return
 	_gather_node = next
 	_gather_pos = next.global_position

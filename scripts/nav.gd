@@ -61,28 +61,45 @@ func find_path(from: Vector2, to: Vector2) -> PackedVector2Array:
 
 
 func approach_point(rect: Rect2i, from: Vector2) -> Vector2:
-	# Ring 1 is the contract; wider rings only kick in when every adjacent cell is blocked.
+	# Ring 1 is the contract; wider rings only kick in when no adjacent cell is free and reachable.
+	var from_cell := _clamp_cell(Grid.world_to_cell(from))
+	var fallback := from
+	var fallback_dist := INF
 	for r in range(1, APPROACH_MAX_RING + 1):
 		var ring := rect.grow(r)
-		var best := Vector2.ZERO
-		var best_dist := INF
+		var candidates: Array[Vector2i] = []
 		for y in range(ring.position.y, ring.end.y):
 			for x in range(ring.position.x, ring.end.x):
 				var inside := x > ring.position.x and x < ring.end.x - 1 \
 						and y > ring.position.y and y < ring.end.y - 1
-				if inside:
-					continue
 				var c := Vector2i(x, y)
-				if not Grid.in_map(c) or grid.is_point_solid(c):
+				if inside or not Grid.in_map(c) or grid.is_point_solid(c):
 					continue
-				var p := Grid.cell_to_world(c)
-				var d := p.distance_squared_to(from)
-				if d < best_dist:
-					best_dist = d
-					best = p
-		if best_dist < INF:
-			return best
-	return from
+				candidates.append(c)
+		candidates.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
+			return Grid.cell_to_world(a).distance_squared_to(from) < Grid.cell_to_world(b).distance_squared_to(from))
+		for c in candidates:
+			var p := Grid.cell_to_world(c)
+			if _reachable(from_cell, c):
+				return p
+			var d := p.distance_squared_to(from)
+			if d < fallback_dist:
+				fallback_dist = d
+				fallback = p
+	# Nothing reachable: keep the closest free cell so callers still get a partial path.
+	return fallback
+
+
+func _reachable(from_cell: Vector2i, to_cell: Vector2i) -> bool:
+	if from_cell == to_cell:
+		return true
+	var start_solid := grid.is_point_solid(from_cell)
+	if start_solid:
+		grid.set_point_solid(from_cell, false)
+	var path := grid.get_id_path(from_cell, to_cell)
+	if start_solid:
+		grid.set_point_solid(from_cell, true)
+	return not path.is_empty()
 
 
 func _clamp_cell(c: Vector2i) -> Vector2i:

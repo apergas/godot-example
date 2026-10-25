@@ -51,6 +51,35 @@ func _initialize() -> void:
 	_check(nav.is_area_free(block), "unblock", "block still solid after set_blocked(false)")
 	nav.reset()
 	_check(nav.is_area_free(Rect2i(9, 5, 1, 3)) and nav.is_area_free(Rect2i(7, 6, 1, 1)), "reset_clears", "reset kept solid cells")
+
+	# Pocket: the closest ring cell (19,10) is free but walled in on its other three sides.
+	nav.reset()
+	nav.set_blocked(Rect2i(20, 10, 1, 1), true)
+	nav.set_blocked(Rect2i(18, 10, 1, 1), true)
+	nav.set_blocked(Rect2i(19, 9, 1, 1), true)
+	nav.set_blocked(Rect2i(19, 11, 1, 1), true)
+	var pocket_from := Grid.cell_to_world(Vector2i(2, 10))
+	var pocket_ap := nav.approach_point(Rect2i(20, 10, 1, 1), pocket_from)
+	_check(Grid.world_to_cell(pocket_ap) != Vector2i(19, 10), "approach_skips_pocket", str(Grid.world_to_cell(pocket_ap)))
+	var pocket_path := nav.find_path(pocket_from, pocket_ap)
+	_check(pocket_path.size() > 0 and pocket_path[pocket_path.size() - 1] == pocket_ap,
+			"approach_pocket_reachable", str(pocket_path))
+	var pocket_path2 := nav.find_path(pocket_from, Grid.cell_to_world(Vector2i(20, 10)))
+	_check(pocket_path2.size() > 0 and pocket_path2[pocket_path2.size() - 1] == pocket_ap,
+			"path_to_pocketed_cell_ends_at_reachable_approach", str(pocket_path2))
+
+	# Target outside the map: clamped to the nearest map cell.
+	nav.reset()
+	var out_path := nav.find_path(Grid.cell_to_world(Vector2i(5, 5)), Vector2(-500.0, -500.0))
+	_check(out_path.size() > 0 and out_path[out_path.size() - 1] == Grid.cell_to_world(Vector2i(0, 0)),
+			"path_out_of_map_clamps", str(out_path))
+
+	# Unreachable (walled-in) free target: partial path, never ends on the target.
+	nav.set_blocked(Rect2i(29, 29, 3, 3), true)
+	nav.set_blocked(Rect2i(30, 30, 1, 1), false)
+	var cell_target := Grid.cell_to_world(Vector2i(30, 30))
+	var far := nav.find_path(Grid.cell_to_world(Vector2i(5, 30)), cell_target)
+	_check(far.size() > 0 and far[far.size() - 1] != cell_target, "path_unreachable_is_partial", str(far))
 	nav.free()
 	quit(1 if _failed else 0)
 
