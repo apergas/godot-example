@@ -6,11 +6,8 @@ enum State { IDLE, MOVING, TO_RESOURCE, GATHERING, TO_DROPOFF, TO_BUILD, BUILDIN
 const NavScript := preload("res://scripts/nav.gd")
 const GameStateScript := preload("res://scripts/game_state.gd")
 const RADIUS := 20.0
-const ARRIVE_DISTANCE := 4.0
-const STUCK_SECONDS := 0.5
 # The origin is at the feet; the body (and the sprite centre) sits above it.
 const BODY_OFFSET := Vector2(0.0, -22.0)
-const WALK_FPS := 8.0
 const CARRY_MAX := 10
 const GATHER_SECONDS := {ResKind.CRYSTAL: 3.0, ResKind.ICE: 4.0}
 const GATHER_RANGE := 96.0
@@ -30,12 +27,6 @@ const BUILD_REACH := 48.0
 const BUILD_ANIM_FPS := 6.0
 const SPARK_HEIGHT := 22.0
 
-# Rows of the spritesheet (see art_src/make_worker.gd); columns are walk phases.
-const ROW_DOWN := 0
-const ROW_UP := 1
-const ROW_SIDE := 2
-const PHASES := 4
-
 @export var speed := 180.0
 
 var selected := false:
@@ -47,21 +38,17 @@ var state: State = State.IDLE
 var carry_kind: int = -1
 var carry_amount: int = 0
 
-var _path := PackedVector2Array()
-var _path_index := 0
-var _stuck_time := 0.0
 var _gather_node: ResourceNode = null
 var _gather_kind := -1
 var _gather_pos := Vector2.ZERO
 var _gather_time := 0.0
 var _dropoff: Building = null
-var _walk_time := 0.0
-var _row := ROW_DOWN
 var _build_site: Building
 var _build_repathed := false
 var _build_time := 0.0
 
 @onready var _sprite: Sprite2D = $Sprite2D
+@onready var _walker := PathWalker.new(self, _sprite)
 
 
 func _ready() -> void:
@@ -134,8 +121,8 @@ func _process_build(delta: float, push: Vector2) -> void:
 	_nudge(push)
 	_build_time += delta
 	_build_site.add_build_progress(delta)
-	_face(area.get_center() - global_position)
-	_sprite.frame = _row * PHASES + int(_build_time * BUILD_ANIM_FPS) % 2
+	_walker.face(area.get_center() - global_position)
+	_sprite.frame = _walker.row * PathWalker.PHASES + int(_build_time * BUILD_ANIM_FPS) % 2
 	queue_redraw()
 	if _build_site.built:
 		_stop_building()
@@ -143,19 +130,14 @@ func _process_build(delta: float, push: Vector2) -> void:
 
 func _begin_building() -> void:
 	state = State.BUILDING
-	_path = PackedVector2Array()
-	_path_index = 0
+	_walker.clear()
 	velocity = Vector2.ZERO
 
 
 func _stop_building() -> void:
 	_build_site = null
-	_path = PackedVector2Array()
-	_path_index = 0
-	velocity = Vector2.ZERO
+	_walker.stop()
 	state = State.IDLE
-	_walk_time = 0.0
-	_update_frame()
 	queue_redraw()
 
 
@@ -257,12 +239,8 @@ func _process_to_resource(delta: float, push: Vector2) -> void:
 func _begin_gathering() -> void:
 	state = State.GATHERING
 	_gather_time = 0.0
-	_path = PackedVector2Array()
-	_path_index = 0
-	velocity = Vector2.ZERO
-	_face(_node_center() - global_position)
-	_walk_time = 0.0
-	_update_frame()
+	_walker.face(_node_center() - global_position)
+	_walker.stop()
 
 
 func _process_gathering(delta: float, push: Vector2) -> void:
@@ -397,51 +375,18 @@ func _physics_process(delta: float) -> void:
 
 
 func _set_path(point: Vector2) -> void:
-	var nav := get_node_or_null("/root/Nav") as NavScript
-	_path = nav.find_path(global_position, point) if nav != null else PackedVector2Array([point])
-	_path_index = 0
-	_stuck_time = 0.0
+	_walker.set_target(point)
 
 
-## Walks along _path. Returns true when the path is finished or the robot is stuck.
+## Walks along the path. Returns true when the path is finished or the robot is stuck.
+## The walker faces the path heading (its default), not the velocity: the push would make it flicker.
 func _follow_path(delta: float, push: Vector2) -> bool:
-	if _path_index >= _path.size():
-		velocity = Vector2.ZERO
-		return true
-	var to_target := _path[_path_index] - global_position
-	if to_target.length() <= ARRIVE_DISTANCE:
-		_path_index += 1
-		if _path_index >= _path.size():
-			velocity = Vector2.ZERO
-			return true
-		to_target = _path[_path_index] - global_position
-	var dist := to_target.length()
-	var step := speed * delta
-	var heading := to_target / dist if dist > 0.0 else Vector2.ZERO
-	velocity = (to_target / delta if dist < step else heading * speed) + push * SEPARATION_SPEED
-	var before := global_position
-	move_and_slide()
-	if before.distance_to(global_position) < minf(step, dist) * 0.1:
-		_stuck_time += delta
-		if _stuck_time >= STUCK_SECONDS:
-			velocity = Vector2.ZERO
-			return true
-	else:
-		_stuck_time = 0.0
-	# Face the path direction, not the velocity: the separation push would make it flicker.
-	_face(heading)
-	_walk_time += delta
-	_update_frame()
-	return false
+	return _walker.step(delta, speed, push * SEPARATION_SPEED)
 
 
 func _stop() -> void:
 	state = State.IDLE
-	_path = PackedVector2Array()
-	_path_index = 0
-	velocity = Vector2.ZERO
-	_walk_time = 0.0
-	_update_frame()
+	_walker.stop()
 
 
 ## Soft separation while not walking: drift away from overlapping robots.
@@ -465,19 +410,6 @@ func _separation() -> Vector2:
 		positions.append(other_pos)
 		ids.append(other.get_instance_id())
 	return separation_push(global_position, get_instance_id(), positions, ids, SEPARATION_DISTANCE)
-
-
-func _face(direction: Vector2) -> void:
-	if absf(direction.x) > absf(direction.y):
-		_row = ROW_SIDE
-		_sprite.flip_h = direction.x < 0.0
-	else:
-		_row = ROW_DOWN if direction.y > 0.0 else ROW_UP
-
-
-func _update_frame() -> void:
-	var phase := int(_walk_time * WALK_FPS) % PHASES
-	_sprite.frame = _row * PHASES + phase
 
 
 func _draw() -> void:
