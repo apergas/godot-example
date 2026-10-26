@@ -14,9 +14,6 @@ const ROW_UP := 1
 const ROW_SIDE := 2
 const PHASES := 4
 
-## Face the post-move velocity instead of the path heading (the colonist does; the robot faces
-## the heading so its separation push does not make the sprite flicker).
-var face_velocity := false
 var row := ROW_DOWN
 var walk_time := 0.0
 
@@ -75,7 +72,7 @@ func step(delta: float, move_speed: float, extra_velocity := Vector2.ZERO) -> bo
 			return true
 	else:
 		_stuck_time = 0.0
-	face(_body.velocity if face_velocity else heading)
+	face(heading)
 	walk_time += delta
 	update_frame()
 	return false
