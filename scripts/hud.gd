@@ -236,3 +236,7 @@ func _update_producer_panels(items: Array) -> void:
 func _on_panel_requested(panel: ProducerPanel) -> void:
 	if is_instance_valid(panel.producer):
 		produce_requested.emit(panel.producer)
+
+
+func bind_missions(tracker: MissionTracker) -> void:
+	(get_node("%MissionPanel") as MissionPanel).bind(tracker)

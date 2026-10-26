@@ -304,7 +304,7 @@ func _process_to_dropoff(delta: float, push: Vector2) -> void:
 func _deliver() -> void:
 	var game := get_node_or_null("/root/GameState") as GameStateScript
 	if game != null:
-		game.add(carry_kind, carry_amount)
+		game.add(carry_kind, carry_amount, true)
 	carry_amount = 0
 	carry_kind = -1
 	_dropoff = null

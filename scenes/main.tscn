@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="TileSet" path="res://assets/ground_tiles.tres" id="3_tileset"]
@@ -9,6 +9,7 @@
 [ext_resource type="Script" path="res://scripts/resource_hints.gd" id="hints_script"]
 [ext_resource type="PackedScene" path="res://scenes/hud.tscn" id="hud_scene"]
 [ext_resource type="Script" path="res://scripts/victory.gd" id="victory_script"]
+[ext_resource type="Script" path="res://scripts/mission_tracker.gd" id="mission_tracker"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_main")
@@ -41,3 +42,6 @@ script = ExtResource("5_camera")
 
 [node name="Victory" type="Node" parent="."]
 script = ExtResource("victory_script")
+
+[node name="MissionTracker" type="Node" parent="."]
+script = ExtResource("mission_tracker")

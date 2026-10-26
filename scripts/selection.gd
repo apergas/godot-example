@@ -3,6 +3,7 @@ extends Node2D
 
 signal changed(items: Array)
 
+const GameStateScript := preload("res://scripts/game_state.gd")
 const CLICK_THRESHOLD := 6.0
 const UNIT_GROUPS := ["workers", "colonists"]
 # Selectable units have their origin at the feet; the body is drawn above it.
@@ -29,6 +30,12 @@ func select(new_items: Array) -> void:
 	items = unique
 	for item in items:
 		item.selected = true
+	var gs := get_node_or_null("/root/GameState") as GameStateScript
+	if gs:
+		for item in items:
+			if item.is_in_group("workers"):
+				gs.set_stat("selected_worker", 1)
+				break
 	changed.emit(items)
 
 

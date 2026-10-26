@@ -95,6 +95,10 @@ func add_build_progress(seconds: float) -> void:
 	built = true
 	_set_pop_cap_applied(true)
 	_refresh_construction_view()
+	if kind_id != "":
+		var gs := get_node_or_null("/root/GameState") as GameStateScript
+		if gs:
+			gs.add_stat("built_" + kind_id)
 	completed.emit()
 
 
