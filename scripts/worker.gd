@@ -26,6 +26,9 @@ const ICE_DARK := Color("6fa3c4")
 const SEPARATION_DISTANCE := 24.0
 const SEPARATION_SPEED := 120.0
 const SEPARATION_DEADZONE := 0.02
+const BUILD_REACH := 48.0
+const BUILD_ANIM_FPS := 6.0
+const SPARK_HEIGHT := 22.0
 
 # Rows of the spritesheet (see art_src/make_worker.gd); columns are walk phases.
 const ROW_DOWN := 0
@@ -54,6 +57,9 @@ var _gather_time := 0.0
 var _dropoff: Building = null
 var _walk_time := 0.0
 var _row := ROW_DOWN
+var _build_site: Building
+var _build_repathed := false
+var _build_time := 0.0
 
 @onready var _sprite: Sprite2D = $Sprite2D
 
@@ -80,6 +86,93 @@ func move_to(point: Vector2) -> void:
 	_dropoff = null
 	_set_path(point)
 	state = State.MOVING
+
+
+func build(site: Building) -> void:
+	if not _node_alive(site) or site.built:
+		return
+	_gather_node = null
+	_gather_kind = -1
+	_dropoff = null
+	_build_site = site
+	_build_time = 0.0
+	_build_repathed = false
+	_set_build_path()
+	state = State.TO_BUILD
+
+
+func _set_build_path() -> void:
+	var nav := get_node_or_null("/root/Nav") as NavScript
+	var target := _site_area().get_center()
+	if nav != null:
+		target = nav.approach_point(_build_site.cell_rect(), global_position)
+	_set_path(target)
+
+
+## In reach of the site from outside its footprint (never from inside the building).
+func _in_build_reach(area: Rect2) -> bool:
+	return not area.has_point(global_position) and area.grow(BUILD_REACH).has_point(global_position)
+
+
+func _process_build(delta: float, push: Vector2) -> void:
+	if not _node_alive(_build_site) or _build_site.built:
+		_stop_building()
+		return
+	var area := _site_area()
+	if state == State.TO_BUILD:
+		if _in_build_reach(area):
+			_begin_building()
+		elif _follow_path(delta, push):
+			if _in_build_reach(area):
+				_begin_building()
+			elif not _build_repathed:
+				_build_repathed = true
+				_set_build_path()
+			else:
+				_stop_building()
+		return
+	_nudge(push)
+	_build_time += delta
+	_build_site.add_build_progress(delta)
+	_face(area.get_center() - global_position)
+	_sprite.frame = _row * PHASES + int(_build_time * BUILD_ANIM_FPS) % 2
+	queue_redraw()
+	if _build_site.built:
+		_stop_building()
+
+
+func _begin_building() -> void:
+	state = State.BUILDING
+	_path = PackedVector2Array()
+	_path_index = 0
+	velocity = Vector2.ZERO
+
+
+func _stop_building() -> void:
+	_build_site = null
+	_path = PackedVector2Array()
+	_path_index = 0
+	velocity = Vector2.ZERO
+	state = State.IDLE
+	_walk_time = 0.0
+	_update_frame()
+	queue_redraw()
+
+
+func _site_area() -> Rect2:
+	return _footprint_rect(_build_site)
+
+
+func _draw_build_spark() -> void:
+	if state != State.BUILDING or not _node_alive(_build_site):
+		return
+	if int(_build_time * BUILD_ANIM_FPS) % 2 == 0:
+		return
+	var toward := (_site_area().get_center() - global_position).normalized()
+	var at := Vector2(0.0, -SPARK_HEIGHT) + toward * 20.0
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	draw_circle(at, 4.0, Color(1.0, 0.76, 0.35))
+	draw_circle(at, 2.0, Color(1.0, 1.0, 0.85))
 
 
 func contains_point(point: Vector2) -> bool:
@@ -284,7 +377,12 @@ static func separation_push(pos: Vector2, self_id: int, others: PackedVector2Arr
 
 func _physics_process(delta: float) -> void:
 	var push := _separation()
+	if _build_site and state != State.TO_BUILD and state != State.BUILDING:
+		_build_site = null
+		queue_redraw()
 	match state:
+		State.TO_BUILD, State.BUILDING:
+			_process_build(delta, push)
 		State.MOVING:
 			if _follow_path(delta, push):
 				_stop()
@@ -391,6 +489,7 @@ func _draw() -> void:
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	if carry_amount > 0:
 		_draw_cargo(Vector2(0.0, CARGO_Y))
+	_draw_build_spark()
 
 
 ## Small crystal or ice block floating over the head while the robot carries something.
