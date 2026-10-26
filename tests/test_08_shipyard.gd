@@ -25,8 +25,8 @@ func _initialize() -> void:
 	var sprite := yard.get_node("Sprite2D") as Sprite2D
 	_check("sprite_layout", sprite.hframes == 2 and not sprite.centered and sprite.offset == Vector2(-48, -136)
 			and sprite.scale == Vector2(2, 2) and sprite.texture.get_size() == Vector2(288, 144), str(sprite.offset))
-	_check("ship_constants", Shipyard.SHIP_COST == {ResKind.CRYSTAL: 300, ResKind.ICE: 200}
-			and Shipyard.SHIP_SECONDS == 60.0 and Shipyard.QUEUE_MAX == 2, "unexpected constants")
+	_check("ship_constants", Shipyard.SHIP_COST == {ResKind.CRYSTAL: 360, ResKind.ICE: 240}
+			and Shipyard.SHIP_SECONDS == 75.0 and Shipyard.QUEUE_MAX == 2, "unexpected constants")
 	_check("texts", yard.title() == "Astillero" and yard.unit_name() == "Nave", yard.title())
 
 	_check("four_platforms", yard.platforms.size() == 4, str(yard.platforms))
@@ -43,8 +43,8 @@ func _initialize() -> void:
 	_check("enqueue_rejects_without_money", not yard.enqueue() and yard.queue == 0, str(yard.queue))
 	gs.add(ResKind.CRYSTAL, 2000)
 	gs.add(ResKind.ICE, 2000)
-	_check("enqueue_pays", yard.enqueue_ship() and yard.queue == 1 and gs.stock[ResKind.CRYSTAL] == 1750
-			and gs.stock[ResKind.ICE] == 1800, str(gs.stock))
+	_check("enqueue_pays", yard.enqueue_ship() and yard.queue == 1 and gs.stock[ResKind.CRYSTAL] == 1690
+			and gs.stock[ResKind.ICE] == 1760, str(gs.stock))
 	_check("queue_max_two", yard.enqueue() and not yard.enqueue() and yard.queue == 2, str(yard.queue))
 
 	var ships: Array = []

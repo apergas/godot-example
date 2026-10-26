@@ -26,8 +26,8 @@ func _initialize() -> void:
 	_check("sprite_layout", sprite.hframes == 2 and not sprite.centered and sprite.offset == Vector2(-48, -104)
 			and sprite.texture.get_size() == Vector2(256, 112), str(sprite.offset))
 	_check("cell_rect", module.cell_rect() == Rect2i(20, 10, 3, 2), str(module.cell_rect()))
-	_check("colonist_constants", ColonyModule.COLONIST_COST == {ResKind.CRYSTAL: 25, ResKind.ICE: 60}
-			and ColonyModule.COLONIST_SECONDS == 30.0 and ColonyModule.QUEUE_MAX == 5, "unexpected constants")
+	_check("colonist_constants", ColonyModule.COLONIST_COST == {ResKind.CRYSTAL: 30, ResKind.ICE: 75}
+			and ColonyModule.COLONIST_SECONDS == 40.0 and ColonyModule.QUEUE_MAX == 5, "unexpected constants")
 	_check("texts", module.title() == "Módulo de colonos" and module.unit_name() == "Colono", module.title())
 
 	_check("enqueue_rejects_without_money", not module.enqueue_colonist() and module.queue == 0, str(module.queue))
@@ -36,7 +36,7 @@ func _initialize() -> void:
 	for i in 5:
 		module.enqueue()
 	_check("queue_max_five", module.queue == 5 and not module.enqueue(), str(module.queue))
-	_check("paid_each", gs.stock[ResKind.CRYSTAL] == 925 and gs.stock[ResKind.ICE] == 700, str(gs.stock))
+	_check("paid_each", gs.stock[ResKind.CRYSTAL] == 900 and gs.stock[ResKind.ICE] == 625, str(gs.stock))
 
 	var spawned: Array = []
 	module.colonist_spawned.connect(func(c: Colonist) -> void: spawned.append(c))

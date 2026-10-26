@@ -5,8 +5,8 @@ class_name ColonyModule extends Producer
 signal colonist_spawned(colonist: Colonist)
 
 const NavScript := preload("res://scripts/nav.gd")
-const COLONIST_COST := {ResKind.CRYSTAL: 25, ResKind.ICE: 60}
-const COLONIST_SECONDS := 30.0
+const COLONIST_COST := {ResKind.CRYSTAL: 30, ResKind.ICE: 75}
+const COLONIST_SECONDS := 40.0
 const QUEUE_MAX := 5
 const COLONIST_SCENE := preload("res://scenes/colonist.tscn")
 const SPAWN_OFFSETS := [Vector2.ZERO, Vector2(24, 0), Vector2(-24, 0), Vector2(0, 20), Vector2(24, 20)]
