@@ -57,9 +57,21 @@ func _initialize() -> void:
 	_check("hidden_panel_ignores_q", requests.size() == 2, str(requests.size()))
 	hud.show_for_selection([])
 	_check("panels_hidden_for_empty", not yard_panel.visible and not colony_panel.visible, "visible")
+	var late := Sim.add_building(world, "res://scenes/buildings/shipyard.tscn", Vector2i(30, 10)) as Shipyard
+	await process_frame
+	late.set_process(false)
+	late.start_construction()
+	hud.show_for_selection([late])
+	_check("unbuilt_producer_disabled", button_of(yard_panel).disabled, "enabled while under construction")
+	late.add_build_progress(late.build_time + 1.0)
+	_check("completed_refreshes_panel", late.built and not button_of(yard_panel).disabled, "still disabled after completion")
 	hud.free()
 	Sim.free_world(world)
 	quit(1 if _failed else 0)
+
+
+func button_of(panel: ProducerPanel) -> Button:
+	return panel.get_node("%ProduceButton") as Button
 
 
 func _key(code: Key) -> InputEventKey:

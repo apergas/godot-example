@@ -25,6 +25,7 @@ var play_time := 0.0
 var gathered: Array[int] = [0, 0]
 
 var _cap_total := 0
+var _restarting := false
 
 
 func add(kind: int, n: int) -> void:
@@ -108,6 +109,9 @@ func _update_goal() -> void:
 
 ## Frees the running game, resets the autoloads once it is gone, then loads a fresh main scene.
 func restart_game() -> void:
+	if _restarting:
+		return
+	_restarting = true
 	var tree := get_tree()
 	tree.paused = false
 	if tree.current_scene != null:
@@ -116,3 +120,4 @@ func restart_game() -> void:
 	reset()
 	get_node("/root/Nav").reset()
 	tree.change_scene_to_file(MAIN_SCENE)
+	_restarting = false

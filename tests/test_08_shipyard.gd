@@ -85,6 +85,14 @@ func _initialize() -> void:
 	nav.set_blocked(Rect2i(43, 21, 8, 2), true)
 	var left := Sim.add_building(world, SHIPYARD, Vector2i(40, 20)) as Shipyard
 	_check("falls_back_to_left_row", left.platforms.size() == 4 and left.platforms[0] == Rect2i(38, 21, 2, 2), str(left.platforms))
+	nav.set_blocked(Rect2i(0, 41, 10, 2), true)
+	nav.set_blocked(Rect2i(13, 41, 40, 2), true)
+	var stuck := Sim.add_building(world, SHIPYARD, Vector2i(10, 40)) as Shipyard
+	gs.add(ResKind.CRYSTAL, 1000)
+	gs.add(ResKind.ICE, 1000)
+	var before: Array = gs.stock.duplicate()
+	_check("no_pads_refuses_enqueue", stuck.platforms.is_empty() and not stuck.enqueue() and stuck.queue == 0
+			and gs.stock == before, "pads=%d queue=%d" % [stuck.platforms.size(), stuck.queue])
 	Sim.free_world(world)
 	quit(1 if _failed else 0)
 

@@ -29,4 +29,5 @@ static func format_time(seconds: float) -> String:
 
 
 func _on_restart_pressed() -> void:
+	_restart_button.disabled = true
 	restart_requested.emit()

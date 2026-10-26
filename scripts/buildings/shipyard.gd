@@ -58,6 +58,12 @@ func blocked_text() -> String:
 	return "Sin plataforma libre — construye otro astillero"
 
 
+func enqueue() -> bool:
+	if platforms.is_empty():
+		return false
+	return super()
+
+
 func enqueue_ship() -> bool:
 	return enqueue()
 

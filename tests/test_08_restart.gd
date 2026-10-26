@@ -22,6 +22,7 @@ func _initialize() -> void:
 	gs.goal_colonists = 3
 
 	gs.restart_game()
+	gs.restart_game()
 	for i in 6:
 		await process_frame
 	_check("old_scene_freed", not is_instance_valid(main), "old Main still alive")

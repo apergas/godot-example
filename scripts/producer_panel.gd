@@ -27,11 +27,14 @@ func _ready() -> void:
 func bind(next: Producer) -> void:
 	if is_instance_valid(producer) and producer.queue_changed.is_connected(_on_queue_changed):
 		producer.queue_changed.disconnect(_on_queue_changed)
+	if is_instance_valid(producer) and producer.completed.is_connected(refresh):
+		producer.completed.disconnect(refresh)
 	producer = next
 	visible = producer != null
 	if producer == null:
 		return
 	producer.queue_changed.connect(_on_queue_changed)
+	producer.completed.connect(refresh)
 	_title.text = producer.title()
 	_button.text = "%s (%s)" % [producer.unit_name(), cost_text(producer.unit_cost())]
 	_status.text = producer.blocked_text()

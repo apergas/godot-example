@@ -54,6 +54,9 @@ func _initialize() -> void:
 	_check("click_selects_colonist", sel.items == [colonist], str(sel.items))
 	_click(sel, hq.global_position + Vector2(0, -96), false)
 	_check("click_building_still_alone", sel.items == [hq], str(sel.items))
+	sel.begin_drag(Vector2.ZERO)
+	sel.clear()
+	_check("clear_ends_drag", not sel._dragging, "drag survived clear")
 	quit(1 if _failed else 0)
 
 

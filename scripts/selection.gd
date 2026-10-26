@@ -33,6 +33,8 @@ func select(new_items: Array) -> void:
 
 
 func clear() -> void:
+	_dragging = false
+	queue_redraw()
 	select([])
 
 
