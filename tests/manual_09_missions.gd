@@ -1,6 +1,7 @@
 extends SceneTree
 ## Manual run for phase 9: opens the game with extra stock (not counted as gathering) and an
 ## optional speed-up to walk through the 12 missions. Not a test: run_all.ps1 only runs test_*.gd.
+## Jugar de nuevo reloads main.tscn without the boost (extra stock and speed-up are lost).
 ## Run: tools\godot.cmd --path . --script res://tests/manual_09_missions.gd [-- <time_scale 1..8>]
 
 const BOOST := 3000
