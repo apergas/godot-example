@@ -3,14 +3,25 @@ extends Node
 
 signal stock_changed
 signal population_changed(population: int, cap: int)
+signal goal_changed(colonists: int, ships: int)
+signal victory
 
-const MAX_CAP := 50
+const MAX_CAP := 60
+const GOAL_COLONISTS := 20
+const GOAL_SHIPS := 4
 const START_STOCK := [50, 0]
 
 var stock: Array[int] = [50, 0]
 
 var population := 0
 var population_cap := 0
+var goal_colonists := GOAL_COLONISTS
+var goal_ships := GOAL_SHIPS
+var colonists := 0
+var ships := 0
+var victory_reached := false
+var play_time := 0.0
+var gathered: Array[int] = [0, 0]
 
 var _cap_total := 0
 
@@ -18,6 +29,8 @@ var _cap_total := 0
 func add(kind: int, n: int) -> void:
 	if n == 0:
 		return
+	if n > 0:
+		gathered[kind] += n
 	stock[kind] += n
 	stock_changed.emit()
 
@@ -45,6 +58,14 @@ func reset() -> void:
 	population_cap = 0
 	_cap_total = 0
 	population_changed.emit(population, population_cap)
+	goal_colonists = GOAL_COLONISTS
+	goal_ships = GOAL_SHIPS
+	colonists = 0
+	ships = 0
+	victory_reached = false
+	play_time = 0.0
+	gathered.assign([0, 0])
+	goal_changed.emit(colonists, ships)
 
 
 func add_population(n: int) -> void:
@@ -60,3 +81,25 @@ func add_cap(n: int) -> void:
 
 func has_room() -> bool:
 	return population < population_cap
+
+
+func _process(delta: float) -> void:
+	play_time += delta
+
+
+func add_colonist(n: int) -> void:
+	colonists = maxi(colonists + n, 0)
+	_update_goal()
+
+
+func add_ship(n: int) -> void:
+	ships = maxi(ships + n, 0)
+	_update_goal()
+
+
+func _update_goal() -> void:
+	goal_changed.emit(colonists, ships)
+	if victory_reached or colonists < goal_colonists or ships < goal_ships:
+		return
+	victory_reached = true
+	victory.emit()

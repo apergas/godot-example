@@ -25,7 +25,7 @@ func _initialize() -> void:
 	_check("full_has_no_room", not gs.has_room(), "has_room() true with 5/5")
 
 	gs.add_cap(100)
-	_check("cap_clamped", gs.population_cap == gs.MAX_CAP and gs.MAX_CAP == 50, str(gs.population_cap))
+	_check("cap_clamped", gs.population_cap == gs.MAX_CAP and gs.MAX_CAP == 60, str(gs.population_cap))
 	gs.add_cap(-100)
 	_check("cap_unclamps_consistently", gs.population_cap == 5, str(gs.population_cap))
 
