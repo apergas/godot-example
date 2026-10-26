@@ -23,10 +23,7 @@ func _initialize() -> void:
 	var sheet := Image.create(W * 2, H, false, Image.FORMAT_RGBA8)
 	sheet.blit_rect(_finished(), Rect2i(0, 0, W, H), Vector2i.ZERO)
 	sheet.blit_rect(_scaffold(), Rect2i(0, 0, W, H), Vector2i(W, 0))
-	var out := ProjectSettings.globalize_path("res://assets/colony_module.png")
-	DirAccess.make_dir_recursive_absolute(out.get_base_dir())
-	sheet.save_png(out)
-	print("saved ", out)
+	Art.save(sheet, "res://assets/colony_module.png")
 
 	var args := OS.get_cmdline_user_args()
 	if args.size() > 0:
@@ -204,12 +201,3 @@ func _rounded_top(img: Image, x0: int, y0: int, x1: int, y1: int, r: int, color:
 				if dx * dx + dy * dy > r * r:
 					continue
 			Art.put(img, x, y, color)
-
-
-## Shadow of an upright element standing on y_base: a parallelogram on the ground,
-## pushed down-right; a point at height h lands at (+h/2, +h/4).
-
-
-## Outlined box whose edges are shaded: light on top/left, dark on bottom/right.
-
-

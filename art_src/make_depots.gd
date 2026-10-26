@@ -214,10 +214,6 @@ func _conveyor(tall: Image, shadow: Image) -> void:
 		Art.box(tall, int(p.x) - 2, int(p.y) - 6, int(p.x) + 1, int(p.y) - 3, Art.ICE_LIGHT, Art.ICE_MID, Art.ICE_DARK)
 
 
-## Shadow of an upright element standing on y_base: a parallelogram on the ground,
-## pushed down-right; a point at height h lands at (+h/2, +h/4).
-
-
 func _cylinder(img: Image, x0: int, x1: int, y_top: int, y_base: int,
 		light: Color, mid: Color, dark: Color) -> void:
 	var cx := (x0 + x1 + 1) * 0.5
@@ -239,11 +235,3 @@ func _band(img: Image, x0: int, x1: int, y: int, rows: int, tones: Array) -> voi
 	Art.rect(img, x0, y + rows, x1, y + rows, Art.OUTLINE)
 	for x in range(x0, x1 + 1):
 		Art.rect(img, x, y, x, y + rows - 1, Art.shade(x, x0, x1, tones[0], tones[1], tones[2]))
-
-
-## Light from the left: light, mid and dark vertical strips across a round surface.
-
-
-## Outlined box whose edges are shaded: light on top/left, dark on bottom/right.
-
-

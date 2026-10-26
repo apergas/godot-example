@@ -18,10 +18,7 @@ func _initialize() -> void:
 		for row in DIRECTIONS:
 			sheet.blit_rect(frames[row], Rect2i(0, 0, SIZE, SIZE), Vector2i(phase * SIZE, row * SIZE))
 
-	var out := ProjectSettings.globalize_path("res://assets/worker.png")
-	DirAccess.make_dir_recursive_absolute(out.get_base_dir())
-	sheet.save_png(out)
-	print("saved ", out)
+	Art.save(sheet, "res://assets/worker.png")
 
 	var args := OS.get_cmdline_user_args()
 	if args.size() > 0:
@@ -148,8 +145,3 @@ func _arm(img: Image, x0: int, dy: int) -> void:
 func _antenna(img: Image, x: int) -> void:
 	Art.rect(img, x - 2, 0, x + 1, 3, Art.OUTLINE)
 	Art.rect(img, x - 1, 1, x, 2, Art.ACCENT_LIGHT)
-
-
-## Outlined box whose edges are shaded: light on top/left, dark on bottom/right.
-
-

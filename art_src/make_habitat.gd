@@ -31,10 +31,7 @@ func _initialize() -> void:
 	for i in FRAMES:
 		sheet.blit_rect(frames[i], Rect2i(0, 0, W, H), Vector2i(i * W, 0))
 
-	var out := ProjectSettings.globalize_path("res://assets/habitat.png")
-	DirAccess.make_dir_recursive_absolute(out.get_base_dir())
-	sheet.save_png(out)
-	print("saved ", out)
+	Art.save(sheet, "res://assets/habitat.png")
 
 	var args := OS.get_cmdline_user_args()
 	if args.size() > 0:

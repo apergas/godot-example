@@ -54,7 +54,7 @@ func _initialize() -> void:
 			str(body.global_position))
 	_check("faced_heading", faced_right, "never faced right on the first leg")
 	_check("cycles_frames", frames.size() == PathWalker.PHASES, str(frames.keys()))
-	_check("last_leg_faces_down_left", walker.row != PathWalker.ROW_UP, str(walker.row))
+	_check("last_leg_faces_down_left", walker.row == PathWalker.ROW_DOWN, str(walker.row))
 
 	# Stop: standing frame (phase 0) of the current row, path dropped.
 	walker.face(Vector2(0, -1))

@@ -36,10 +36,7 @@ func _initialize() -> void:
 	_dish(img)
 	_lights(img)
 
-	var out := ProjectSettings.globalize_path("res://assets/hq.png")
-	DirAccess.make_dir_recursive_absolute(out.get_base_dir())
-	img.save_png(out)
-	print("saved ", out)
+	Art.save(img, "res://assets/hq.png")
 
 	var args := OS.get_cmdline_user_args()
 	if args.size() > 0:

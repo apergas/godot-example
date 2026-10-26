@@ -25,10 +25,7 @@ func _initialize() -> void:
 	var sheet := Image.create(FRAME * FRAMES, FRAME, false, Image.FORMAT_RGBA8)
 	for i in FRAMES:
 		sheet.blit_rect(frames[i], Rect2i(0, 0, FRAME, FRAME), Vector2i(i * FRAME, 0))
-	var out := ProjectSettings.globalize_path("res://assets/rescue_ship.png")
-	DirAccess.make_dir_recursive_absolute(out.get_base_dir())
-	sheet.save_png(out)
-	print("saved ", out)
+	Art.save(sheet, "res://assets/rescue_ship.png")
 
 	var args := OS.get_cmdline_user_args()
 	if args.size() > 0:
@@ -142,13 +139,6 @@ func _shadow() -> Image:
 	return img
 
 
-## Shadow of an upright element standing on y_base: a parallelogram on the ground,
-## pushed down-right; a point at height h lands at (+h/2, +h/4).
-
-
-## Light from the left: light, mid and dark vertical strips across a round surface.
-
-
 func _tri(img: Image, a: Vector2, b: Vector2, c: Vector2, color: Color) -> void:
 	var polygon := PackedVector2Array([a, b, c])
 	var lo := a.min(b).min(c).floor()
@@ -164,5 +154,3 @@ func _line(img: Image, a: Vector2, b: Vector2, color: Color) -> void:
 	for i in steps + 1:
 		var p := a.lerp(b, float(i) / maxf(steps, 1.0))
 		Art.put(img, int(round(p.x)), int(round(p.y)), color)
-
-
