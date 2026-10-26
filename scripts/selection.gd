@@ -4,6 +4,7 @@ extends Node2D
 signal changed(items: Array)
 
 const CLICK_THRESHOLD := 6.0
+const UNIT_GROUPS := ["workers", "colonists"]
 # Selectable units have their origin at the feet; the body is drawn above it.
 const BODY_OFFSET := Vector2(0.0, -22.0)
 const FILL_COLOR := Color(0.3, 1.0, 0.4, 0.15)
@@ -32,6 +33,8 @@ func select(new_items: Array) -> void:
 
 
 func clear() -> void:
+	_dragging = false
+	queue_redraw()
 	select([])
 
 
@@ -59,18 +62,22 @@ func end_drag(p: Vector2, additive: bool) -> void:
 	if _is_click(rect):
 		_click_select(p, additive)
 		return
-	var found := items_in_rect(rect, get_tree().get_nodes_in_group("workers"))
+	var found := items_in_rect(rect, _unit_nodes())
 	var base: Array = _only_workers(items) if additive else []
 	select(base + found)
 
 
 func _click_select(p: Vector2, additive: bool) -> void:
-	var candidates: Array = get_tree().get_nodes_in_group("workers") + get_tree().get_nodes_in_group("buildings")
-	var hit := pick_at(p, candidates)
+	# Priority: units, then ships, then buildings.
+	var hit: Node2D = pick_at(p, _unit_nodes())
+	if hit == null:
+		hit = pick_at(p, get_tree().get_nodes_in_group("ships"))
+	if hit == null:
+		hit = pick_at(p, get_tree().get_nodes_in_group("buildings"))
 	if hit == null:
 		select(_only_workers(items) if additive else [])
 		return
-	if hit.is_in_group("buildings") or not additive:
+	if _is_solo(hit) or not additive:
 		select([hit])
 		return
 	select(_only_workers(items) + [hit])
@@ -106,9 +113,25 @@ static func pick_at(p: Vector2, nodes: Array) -> Node2D:
 static func _only_workers(nodes: Array) -> Array:
 	var result: Array = []
 	for node in nodes:
-		if is_instance_valid(node) and node.is_in_group("workers"):
+		if _is_unit(node):
 			result.append(node)
 	return result
+
+
+func _unit_nodes() -> Array:
+	var result: Array = []
+	for group: String in UNIT_GROUPS:
+		result.append_array(get_tree().get_nodes_in_group(group))
+	return result
+
+
+static func _is_unit(node) -> bool:
+	return is_instance_valid(node) and (node.is_in_group("workers") or node.is_in_group("colonists"))
+
+
+## Things selected on their own, never mixed with units: buildings and rescue ships.
+static func _is_solo(node) -> bool:
+	return is_instance_valid(node) and (node.is_in_group("buildings") or node.is_in_group("ships"))
 
 
 func _is_click(rect: Rect2) -> bool:

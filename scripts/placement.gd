@@ -15,6 +15,7 @@ var active := false
 var world: Node2D
 var footprint := Vector2i.ONE
 var cost: Dictionary = {}
+var requires: Array[String] = []
 var ghost_cell := Vector2i.ZERO
 var ghost_valid := false
 
@@ -34,6 +35,7 @@ func begin(scene: PackedScene) -> void:
 	_scene = scene
 	footprint = proto.footprint
 	cost = proto.cost.duplicate()
+	requires.assign(proto.requires)
 	_ghost = _make_ghost(proto)
 	proto.free()
 	active = true
@@ -65,7 +67,7 @@ func is_valid_at(cell: Vector2i) -> bool:
 	var gs := _game_state()
 	if nav == null or gs == null:
 		return false
-	return nav.is_area_free(rect) and gs.can_afford(cost)
+	return nav.is_area_free(rect) and gs.can_afford(cost) and _requirements_met()
 
 
 func update_cursor(point: Vector2) -> void:
@@ -167,3 +169,7 @@ func _nav() -> NavScript:
 
 func _game_state() -> GameStateScript:
 	return get_node_or_null("/root/GameState") as GameStateScript
+
+
+func _requirements_met() -> bool:
+	return not is_inside_tree() or Building.missing_requirement(get_tree(), requires) == ""

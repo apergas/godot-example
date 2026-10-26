@@ -1,6 +1,7 @@
 extends Node2D
 
 const FORMATION_SPACING := 40.0
+const COLONIST_SPACING := 40.0
 const OrderMarker := preload("res://scripts/order_marker.gd")
 const CRYSTAL_SCENE := preload("res://scenes/resources/crystal.tscn")
 const ICE_SCENE := preload("res://scenes/resources/ice.tscn")
@@ -11,10 +12,12 @@ const WORKER_SCENE := preload("res://scenes/worker.tscn")
 @onready var _hud: CanvasLayer = $HUD
 @onready var _world: Node2D = $World
 @onready var _placement: Placement = $Placement
+@onready var _victory: Victory = $Victory
 
 
 func _ready() -> void:
 	_hud.connect("train_requested", _on_train_requested)
+	_hud.connect("produce_requested", _on_produce_requested)
 	_selection.changed.connect(Callable(_hud, "show_for_selection"))
 	_placement.world = _world
 	_hud.connect("build_requested", Callable(_placement, "begin"))
@@ -32,6 +35,8 @@ func _process(_delta: float) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if _placement.active:
 		return
+	if _victory.active:
+		return
 	if event is InputEventMouseMotion:
 		_selection.update_drag(get_global_mouse_position())
 		return
@@ -47,9 +52,32 @@ func _unhandled_input(event: InputEvent) -> void:
 				_selection.end_drag(point, button.shift_pressed)
 		MOUSE_BUTTON_RIGHT:
 			if button.pressed:
-				if _try_build_order(point):
-					return
-				command_move(point)
+				_command_right_click(point)
+
+
+## Right click: colonists only walk there; robots build, gather, return cargo or move.
+func _command_right_click(point: Vector2) -> void:
+	_order_colonists(_selected_colonists(), point)
+	if _try_build_order(point):
+		return
+	_order_workers(_selected_workers(), point)
+
+
+func _selected_colonists() -> Array:
+	return _selection.items.filter(func(item) -> bool: return is_instance_valid(item) and item.is_in_group("colonists"))
+
+
+func _order_colonists(colonists: Array, point: Vector2) -> void:
+	if colonists.is_empty():
+		return
+	var targets: Array[Vector2] = Formation.targets(point, colonists.size(), COLONIST_SPACING)
+	for i in colonists.size():
+		colonists[i].move_to(targets[i])
+
+
+func _on_produce_requested(producer: Producer) -> void:
+	if is_instance_valid(producer):
+		producer.enqueue()
 
 
 func command_move(point: Vector2) -> void:
