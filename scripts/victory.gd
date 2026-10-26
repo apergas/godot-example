@@ -42,6 +42,7 @@ func _on_victory() -> void:
 		return
 	active = true
 	totals = collect_totals()
+	_stop_production()
 	_play()
 
 
@@ -126,3 +127,10 @@ static func _nearest(point: Vector2, ships: Array[RescueShip]) -> RescueShip:
 		if ship.global_position.distance_squared_to(point) < best.global_position.distance_squared_to(point):
 			best = ship
 	return best
+
+
+## A queued unit finishing after the boarding snapshot would never board or launch.
+func _stop_production() -> void:
+	for node in get_tree().get_nodes_in_group("buildings"):
+		if node is Producer:
+			node.set_process(false)
