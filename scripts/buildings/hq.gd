@@ -61,3 +61,6 @@ func _spawn_worker() -> void:
 	worker.position = parent.to_local(spot)
 	parent.add_child(worker)
 	worker_spawned.emit(worker)
+	var gs := get_node_or_null("/root/GameState") as GameStateScript
+	if gs:
+		gs.add_stat("workers_trained")
