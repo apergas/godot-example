@@ -62,6 +62,18 @@ func _ready() -> void:
 	add_to_group("workers")
 
 
+func _enter_tree() -> void:
+	var game := get_node_or_null("/root/GameState") as GameStateScript
+	if game != null:
+		game.add_population(1)
+
+
+func _exit_tree() -> void:
+	var game := get_node_or_null("/root/GameState") as GameStateScript
+	if game != null:
+		game.add_population(-1)
+
+
 func move_to(point: Vector2) -> void:
 	_gather_node = null
 	_gather_kind = -1

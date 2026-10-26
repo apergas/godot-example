@@ -56,21 +56,24 @@ func end_drag(p: Vector2, additive: bool) -> void:
 	_end = p
 	queue_redraw()
 	var rect := drag_rect(_start, _end)
-	var found: Array = []
 	if _is_click(rect):
-		var candidates: Array = get_tree().get_nodes_in_group("workers") + get_tree().get_nodes_in_group("buildings")
-		var hit := pick_at(p, candidates)
-		if hit != null and hit.is_in_group("buildings"):
-			select([hit])
-			return
-		if hit != null:
-			found = [hit]
-	else:
-		found = items_in_rect(rect, get_tree().get_nodes_in_group("workers"))
-	if additive:
-		select(_workers_only(items) + found)
-	else:
-		select(found)
+		_click_select(p, additive)
+		return
+	var found := items_in_rect(rect, get_tree().get_nodes_in_group("workers"))
+	var base: Array = _only_workers(items) if additive else []
+	select(base + found)
+
+
+func _click_select(p: Vector2, additive: bool) -> void:
+	var candidates: Array = get_tree().get_nodes_in_group("workers") + get_tree().get_nodes_in_group("buildings")
+	var hit := pick_at(p, candidates)
+	if hit == null:
+		select(_only_workers(items) if additive else [])
+		return
+	if hit.is_in_group("buildings") or not additive:
+		select([hit])
+		return
+	select(_only_workers(items) + [hit])
 
 
 static func drag_rect(a: Vector2, b: Vector2) -> Rect2:
@@ -100,7 +103,7 @@ static func pick_at(p: Vector2, nodes: Array) -> Node2D:
 	return best
 
 
-static func _workers_only(nodes: Array) -> Array:
+static func _only_workers(nodes: Array) -> Array:
 	var result: Array = []
 	for node in nodes:
 		if is_instance_valid(node) and node.is_in_group("workers"):
