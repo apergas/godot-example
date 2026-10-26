@@ -9,28 +9,36 @@ const POP_FULL_COLOR := Color(1.0, 0.35, 0.3)
 const HABITAT_SCENE := preload("res://scenes/buildings/habitat.tscn")
 const CRYSTAL_DEPOT_SCENE := preload("res://scenes/buildings/crystal_depot.tscn")
 const ICE_DEPOT_SCENE := preload("res://scenes/buildings/ice_depot.tscn")
+const SHIPYARD_SCENE := preload("res://scenes/buildings/shipyard.tscn")
+const COLONY_MODULE_SCENE := preload("res://scenes/buildings/colony_module.tscn")
+const BUILD_REFRESH_SECONDS := 0.25
 const BUILDABLES := [
 	{"id": "Habitat", "name": "Habitáculo", "key": KEY_H, "scene": HABITAT_SCENE},
 	{"id": "CrystalDepot", "name": "Depósito de cristal", "key": KEY_C, "scene": CRYSTAL_DEPOT_SCENE},
 	{"id": "IceDepot", "name": "Depósito de hielo", "key": KEY_I, "scene": ICE_DEPOT_SCENE},
+	{"id": "Shipyard", "name": "Astillero", "key": KEY_S, "scene": SHIPYARD_SCENE},
+	{"id": "ColonyModule", "name": "Módulo de colonos", "key": KEY_M, "scene": COLONY_MODULE_SCENE},
 ]
 
 var _hq: HQ = null
 var _build_armed := false
 var _build_buttons := {}
 var _build_costs := {}
+var _build_titles := {}
+var _build_requires := {}
 
 @onready var _crystal_label: Label = $TopBar/Row/CrystalLabel
 @onready var _ice_label: Label = $TopBar/Row/IceLabel
 @onready var _hover_label: Label = $HoverLabel
 @onready var _pop_label: Label = %PopLabel
+@onready var _goal_label: Label = %GoalLabel
 @onready var _hq_panel: Control = %HQPanel
 @onready var _train_button: Button = %TrainButton
 @onready var _queue_label: Label = %QueueLabel
 @onready var _train_bar: ProgressBar = %TrainBar
 @onready var _status_label: Label = %StatusLabel
 @onready var _build_menu: Control = $BuildMenu
-@onready var _build_box: HBoxContainer = $BuildMenu/Buttons
+@onready var _build_box: Container = $BuildMenu/Buttons
 
 
 func _ready() -> void:
@@ -43,6 +51,8 @@ func _ready() -> void:
 	_hq_panel.hide()
 	_update_pop(GameState.population, GameState.population_cap)
 	_setup_build_menu()
+	GameState.goal_changed.connect(_update_goal)
+	_update_goal(GameState.colonists, GameState.ships)
 
 
 func show_for_selection(items: Array) -> void:
@@ -123,16 +133,23 @@ func _setup_build_menu() -> void:
 		var scene: PackedScene = entry["scene"]
 		var proto := scene.instantiate() as Building
 		_build_costs[id] = proto.cost.duplicate()
+		_build_requires[id] = proto.requires.duplicate()
 		proto.free()
+		_build_titles[id] = "%s [%s]" % [entry["name"], OS.get_keycode_string(entry["key"])]
 		var button := Button.new()
 		button.name = id + "Button"
-		button.text = "%s [%s]\n%s" % [entry["name"], OS.get_keycode_string(entry["key"]), _cost_text(_build_costs[id])]
 		button.focus_mode = Control.FOCUS_NONE
 		button.pressed.connect(_request_build.bind(id))
 		_build_box.add_child(button)
 		_build_buttons[id] = button
 	_build_menu.visible = false
 	GameState.stock_changed.connect(_refresh_build_buttons)
+	var timer := Timer.new()
+	timer.name = "BuildRefresh"
+	timer.wait_time = BUILD_REFRESH_SECONDS
+	timer.autostart = true
+	timer.timeout.connect(_refresh_build_buttons)
+	add_child(timer)
 	_refresh_build_buttons()
 
 
@@ -145,18 +162,34 @@ func _cost_text(cost: Dictionary) -> String:
 
 func _refresh_build_buttons() -> void:
 	for id in _build_buttons:
-		(_build_buttons[id] as Button).disabled = not GameState.can_afford(_build_costs[id])
+		var button := _build_buttons[id] as Button
+		var missing := _missing_for(id)
+		button.disabled = missing != "" or not GameState.can_afford(_build_costs[id])
+		var detail := Building.requirement_text(missing) if missing != "" else _cost_text(_build_costs[id])
+		button.text = "%s\n%s" % [_build_titles[id], detail]
+
+
+func _missing_for(id: String) -> String:
+	if not is_inside_tree():
+		return ""
+	return Building.missing_requirement(get_tree(), _build_requires.get(id, []))
+
+
+func _update_goal(colonists: int, ships: int) -> void:
+	_goal_label.text = "Colonos %d/%d · Naves %d/%d" % [colonists, GameState.goal_colonists, ships, GameState.goal_ships]
 
 
 func _update_build_menu(items: Array) -> void:
 	_build_menu.visible = items.any(func(item) -> bool: return is_instance_valid(item) and item.is_in_group("workers"))
 	if not _build_menu.visible:
 		_build_armed = false
+	if _build_menu.visible:
+		_refresh_build_buttons()
 
 
 func _request_build(id: String) -> void:
 	_build_armed = false
-	if not GameState.can_afford(_build_costs[id]):
+	if not GameState.can_afford(_build_costs[id]) or _missing_for(id) != "":
 		return
 	for entry in BUILDABLES:
 		if entry["id"] == id:
