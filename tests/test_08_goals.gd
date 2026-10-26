@@ -40,10 +40,12 @@ func _initialize() -> void:
 	gs.add_colonist(-10)
 	_check("colonists_not_negative", gs.colonists == 0, str(gs.colonists))
 
-	gs.add(ResKind.CRYSTAL, 30)
-	gs.add(ResKind.ICE, 12)
+	gs.add(ResKind.CRYSTAL, 30, true)
+	gs.add(ResKind.ICE, 12, true)
 	gs.spend({ResKind.CRYSTAL: 20})
 	_check("gathered_counts_income_only", gs.gathered[ResKind.CRYSTAL] == 30 and gs.gathered[ResKind.ICE] == 12, str(gs.gathered))
+	gs.add(ResKind.CRYSTAL, 99)
+	_check("reward_add_not_gathered", gs.gathered[ResKind.CRYSTAL] == 30, str(gs.gathered))
 	var before: float = gs.play_time
 	gs._process(2.5)
 	_check("play_time_advances", gs.play_time >= before + 2.5, str(gs.play_time))

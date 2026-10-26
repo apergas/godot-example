@@ -25,8 +25,8 @@ func _initialize() -> void:
 	gs.victory.connect(_on_victory)
 	gs.goal_colonists = 2
 	gs.goal_ships = 1
-	gs.add(ResKind.CRYSTAL, 120)
-	gs.add(ResKind.ICE, 80)
+	gs.add(ResKind.CRYSTAL, 120, true)
+	gs.add(ResKind.ICE, 80, true)
 
 	var rect := Rect2i(30, 10, 2, 2)
 	Sim.nav(self).set_blocked(rect, true)

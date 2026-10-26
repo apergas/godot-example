@@ -2,6 +2,7 @@ extends Node
 ## Global economy state (autoload "GameState"): resource stock indexed by ResKind.
 
 signal stock_changed
+signal stats_changed
 signal population_changed(population: int, cap: int)
 signal goal_changed(colonists: int, ships: int)
 signal victory
@@ -11,6 +12,15 @@ const MAIN_SCENE := "res://scenes/main.tscn"
 const GOAL_COLONISTS := 20
 const GOAL_SHIPS := 4
 const START_STOCK := [50, 0]
+const GATHER_STATS := ["gathered_crystal", "gathered_ice"]
+const START_STATS := {
+	"gathered_crystal": 0,
+	"gathered_ice": 0,
+	"workers_trained": 0,
+	"colonists": 0,
+	"ships": 0,
+	"selected_worker": 0,
+}
 
 var stock: Array[int] = [50, 0]
 
@@ -23,18 +33,21 @@ var ships := 0
 var victory_reached := false
 var play_time := 0.0
 var gathered: Array[int] = [0, 0]
+var stats: Dictionary = START_STATS.duplicate()
 
 var _cap_total := 0
 var _restarting := false
 
 
-func add(kind: int, n: int) -> void:
+func add(kind: int, n: int, from_delivery := false) -> void:
 	if n == 0:
 		return
-	if n > 0:
+	if from_delivery and n > 0:
 		gathered[kind] += n
 	stock[kind] += n
 	stock_changed.emit()
+	if from_delivery and n > 0:
+		add_stat(GATHER_STATS[kind], n)
 
 
 func can_afford(cost: Dictionary) -> bool:
@@ -68,6 +81,8 @@ func reset() -> void:
 	play_time = 0.0
 	gathered.assign([0, 0])
 	goal_changed.emit(colonists, ships)
+	stats = START_STATS.duplicate()
+	stats_changed.emit()
 
 
 func add_population(n: int) -> void:
@@ -90,11 +105,15 @@ func _process(delta: float) -> void:
 
 
 func add_colonist(n: int) -> void:
+	if n > 0:
+		add_stat("colonists", n)
 	colonists = maxi(colonists + n, 0)
 	_update_goal()
 
 
 func add_ship(n: int) -> void:
+	if n > 0:
+		add_stat("ships", n)
 	ships = maxi(ships + n, 0)
 	_update_goal()
 
@@ -121,3 +140,21 @@ func restart_game() -> void:
 	get_node("/root/Nav").reset()
 	tree.change_scene_to_file(MAIN_SCENE)
 	_restarting = false
+
+
+func stat(key: String) -> int:
+	return int(stats.get(key, 0))
+
+
+func add_stat(key: String, n := 1) -> void:
+	if n == 0:
+		return
+	stats[key] = stat(key) + n
+	stats_changed.emit()
+
+
+func set_stat(key: String, value: int) -> void:
+	if stats.has(key) and stat(key) == value:
+		return
+	stats[key] = value
+	stats_changed.emit()
