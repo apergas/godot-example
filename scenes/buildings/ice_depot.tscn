@@ -11,6 +11,7 @@ script = ExtResource("1_building")
 footprint = Vector2i(2, 2)
 accepts_kinds = Array[int]([1])
 build_time = 15.0
+kind_id = "ice_depot"
 cost = {
 0: 100
 }

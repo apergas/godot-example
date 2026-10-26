@@ -11,12 +11,22 @@ const BAR_HEIGHT := 8.0
 const BAR_GAP := 6.0
 const BAR_BACK := Color(0.08, 0.11, 0.16, 0.9)
 const BAR_FILL := Color(1.0, 0.76, 0.35)
+const KIND_NAMES := {
+	"hq": "Base central",
+	"habitat": "Habitáculo",
+	"crystal_depot": "Depósito de cristal",
+	"ice_depot": "Depósito de hielo",
+	"shipyard": "Astillero",
+	"colony_module": "Módulo de colonos",
+}
 
 @export var footprint := Vector2i(2, 2)
 @export var accepts_kinds: Array[int] = []
 @export var build_time := 10.0
 @export var pop_cap_bonus := 0
 @export var cost: Dictionary = {}
+@export var kind_id := ""
+@export var requires: Array[String] = []
 
 var cell: Vector2i
 var built := true
@@ -172,3 +182,27 @@ func _top_y() -> float:
 	if sprite and sprite.texture:
 		return (sprite.transform * sprite.get_rect()).position.y
 	return -footprint.y * Grid.TILE
+
+
+func requirements_met() -> bool:
+	return is_inside_tree() and missing_requirement(get_tree(), requires) == ""
+
+
+## First kind_id in `required` without a finished building in the tree, or "" if all are met.
+static func missing_requirement(tree: SceneTree, required: Array) -> String:
+	for id: String in required:
+		if not has_finished(tree, id):
+			return id
+	return ""
+
+
+static func has_finished(tree: SceneTree, id: String) -> bool:
+	for node in tree.get_nodes_in_group("buildings"):
+		var building := node as Building
+		if building != null and building.built and building.kind_id == id and not building.is_queued_for_deletion():
+			return true
+	return false
+
+
+static func requirement_text(id: String) -> String:
+	return "Requiere: " + String(KIND_NAMES.get(id, id))
