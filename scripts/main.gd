@@ -13,6 +13,7 @@ const WORKER_SCENE := preload("res://scenes/worker.tscn")
 @onready var _world: Node2D = $World
 @onready var _placement: Placement = $Placement
 @onready var _victory: Victory = $Victory
+@onready var _missions: MissionTracker = $MissionTracker
 
 
 func _ready() -> void:
@@ -26,6 +27,7 @@ func _ready() -> void:
 	var hq := _spawn_hq()
 	_spawn_workers()
 	($Camera2D as Camera2D).position = hq.position + Vector2(0.0, -Grid.TILE * 1.5)
+	_hud.bind_missions(_missions)
 
 
 func _process(_delta: float) -> void:

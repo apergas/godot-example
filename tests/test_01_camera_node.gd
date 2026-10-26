@@ -48,6 +48,8 @@ func _initialize() -> void:
 		_wheel(MOUSE_BUTTON_WHEEL_DOWN, view / 2.0)
 	_check("zoom floored at 0.5", is_equal_approx(cam.zoom.x, 0.5), str(cam.zoom))
 
+	# The 64x64 headless view is smaller than the mission panel, which would swallow the click.
+	main.get_node("HUD/MissionPanel").visible = false
 	# Below the HUD top bar (44 px), which would swallow the click.
 	var below_bar := Vector2(view.x / 2.0, 60.0)
 	cam.zoom = Vector2.ONE
