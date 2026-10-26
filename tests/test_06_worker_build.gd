@@ -22,6 +22,8 @@ func _initialize() -> void:
 	var single := await _test_one_builder()
 	await _test_two_builders(single)
 	await _test_abandon_and_resume()
+	await _test_builder_on_footprint()
+	await _test_blocked_path_gives_up()
 	quit(1 if _failed else 0)
 
 
@@ -143,4 +145,46 @@ func _test_abandon_and_resume() -> void:
 		t += _step
 	_check("resume: site completed", site.built, "%.3f" % site.build_progress)
 	_check("resume: remaining work only", t < 12.0, "%.2f s" % t)
+	await _teardown(world)
+
+
+func _test_builder_on_footprint() -> void:
+	var world := _setup()
+	var site := _spawn_site(world)
+	var area := Rect2(Vector2(site.cell * Grid.TILE), Vector2(site.footprint * Grid.TILE))
+	var w = _spawn_worker(world, SITE_CELL)
+	w.position = area.get_center()
+	await physics_frame
+	w.build(site)
+	var working := 0
+	var inside_while_building := 0
+	for i in 240:
+		await physics_frame
+		if w.state == BUILDING:
+			working += 1
+			if area.has_point(w.global_position):
+				inside_while_building += 1
+	_check("on footprint: worker builds", working > 0, str(w.state))
+	_check("on footprint: never builds from inside", inside_while_building == 0, "%d frames inside" % inside_while_building)
+	await _teardown(world)
+
+
+func _test_blocked_path_gives_up() -> void:
+	var world := _setup()
+	var site := _spawn_site(world)
+	var w = _spawn_worker(world, Vector2i(14, 11))
+	for offset in [Vector2(40, 0), Vector2(-40, 0), Vector2(0, 40), Vector2(0, -40)]:
+		var wall := StaticBody2D.new()
+		var shape := CollisionShape2D.new()
+		var rect := RectangleShape2D.new()
+		rect.size = Vector2(40, 40)
+		shape.shape = rect
+		wall.add_child(shape)
+		wall.position = w.position + offset
+		world.add_child(wall)
+	await physics_frame
+	w.build(site)
+	for i in 180:
+		await physics_frame
+	_check("blocked: worker does not stay in TO_BUILD", w.state != TO_BUILD, str(w.state))
 	await _teardown(world)

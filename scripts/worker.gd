@@ -58,7 +58,7 @@ var _dropoff: Building = null
 var _walk_time := 0.0
 var _row := ROW_DOWN
 var _build_site: Building
-var _build_path := PackedVector2Array()
+var _build_repathed := false
 var _build_time := 0.0
 
 @onready var _sprite: Sprite2D = $Sprite2D
@@ -91,19 +91,27 @@ func move_to(point: Vector2) -> void:
 func build(site: Building) -> void:
 	if not _node_alive(site) or site.built:
 		return
-	var nav := get_node_or_null("/root/Nav") as NavScript
 	_gather_node = null
 	_gather_kind = -1
 	_dropoff = null
 	_build_site = site
 	_build_time = 0.0
+	_build_repathed = false
+	_set_build_path()
+	state = State.TO_BUILD
+
+
+func _set_build_path() -> void:
+	var nav := get_node_or_null("/root/Nav") as NavScript
 	var target := _site_area().get_center()
 	if nav != null:
-		target = nav.approach_point(site.cell_rect(), global_position)
-		_build_path = nav.find_path(global_position, target)
-	else:
-		_build_path = PackedVector2Array([target])
-	state = State.TO_BUILD
+		target = nav.approach_point(_build_site.cell_rect(), global_position)
+	_set_path(target)
+
+
+## In reach of the site from outside its footprint (never from inside the building).
+func _in_build_reach(area: Rect2) -> bool:
+	return not area.has_point(global_position) and area.grow(BUILD_REACH).has_point(global_position)
 
 
 func _process_build(delta: float, push: Vector2) -> void:
@@ -112,11 +120,16 @@ func _process_build(delta: float, push: Vector2) -> void:
 		return
 	var area := _site_area()
 	if state == State.TO_BUILD:
-		if area.grow(BUILD_REACH).has_point(global_position):
-			state = State.BUILDING
-			velocity = Vector2.ZERO
-		elif not _step_build_path(delta):
-			_stop_building()
+		if _in_build_reach(area):
+			_begin_building()
+		elif _follow_path(delta, push):
+			if _in_build_reach(area):
+				_begin_building()
+			elif not _build_repathed:
+				_build_repathed = true
+				_set_build_path()
+			else:
+				_stop_building()
 		return
 	_nudge(push)
 	_build_time += delta
@@ -128,24 +141,17 @@ func _process_build(delta: float, push: Vector2) -> void:
 		_stop_building()
 
 
-## Advances along the path to the site; false once the path is used up.
-func _step_build_path(delta: float) -> bool:
-	while not _build_path.is_empty() and global_position.distance_to(_build_path[0]) <= ARRIVE_DISTANCE:
-		_build_path.remove_at(0)
-	if _build_path.is_empty():
-		velocity = Vector2.ZERO
-		return false
-	velocity = (_build_path[0] - global_position).normalized() * speed
-	move_and_slide()
-	_face(velocity)
-	_walk_time += delta
-	_update_frame()
-	return true
+func _begin_building() -> void:
+	state = State.BUILDING
+	_path = PackedVector2Array()
+	_path_index = 0
+	velocity = Vector2.ZERO
 
 
 func _stop_building() -> void:
 	_build_site = null
-	_build_path = PackedVector2Array()
+	_path = PackedVector2Array()
+	_path_index = 0
 	velocity = Vector2.ZERO
 	state = State.IDLE
 	_walk_time = 0.0
