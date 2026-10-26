@@ -3,6 +3,7 @@ extends CanvasLayer
 
 signal train_requested
 signal build_requested(scene: PackedScene)
+signal produce_requested(producer: Producer)
 
 const HOVER_OFFSET := Vector2(16, 20)
 const POP_FULL_COLOR := Color(1.0, 0.35, 0.3)
@@ -33,6 +34,8 @@ var _build_requires := {}
 @onready var _pop_label: Label = %PopLabel
 @onready var _goal_label: Label = %GoalLabel
 @onready var _hq_panel: Control = %HQPanel
+@onready var _shipyard_panel: ProducerPanel = %ShipyardPanel
+@onready var _colony_panel: ProducerPanel = %ColonyPanel
 @onready var _train_button: Button = %TrainButton
 @onready var _queue_label: Label = %QueueLabel
 @onready var _train_bar: ProgressBar = %TrainBar
@@ -53,6 +56,8 @@ func _ready() -> void:
 	_setup_build_menu()
 	GameState.goal_changed.connect(_update_goal)
 	_update_goal(GameState.colonists, GameState.ships)
+	_shipyard_panel.requested.connect(_on_panel_requested.bind(_shipyard_panel))
+	_colony_panel.requested.connect(_on_panel_requested.bind(_colony_panel))
 
 
 func show_for_selection(items: Array) -> void:
@@ -61,6 +66,7 @@ func show_for_selection(items: Array) -> void:
 		hq = items[0]
 	_set_hq(hq)
 	_update_build_menu(items)
+	_update_producer_panels(items)
 
 
 func show_hover(text: String, screen_pos: Vector2) -> void:
@@ -219,3 +225,14 @@ func _handle_build_keys(event: InputEvent) -> bool:
 			_request_build(entry["id"])
 			return true
 	return false
+
+
+func _update_producer_panels(items: Array) -> void:
+	var single: Object = items[0] if items.size() == 1 and is_instance_valid(items[0]) else null
+	_shipyard_panel.bind(single as Shipyard)
+	_colony_panel.bind(single as ColonyModule)
+
+
+func _on_panel_requested(panel: ProducerPanel) -> void:
+	if is_instance_valid(panel.producer):
+		produce_requested.emit(panel.producer)
