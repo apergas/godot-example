@@ -97,7 +97,7 @@ func contains_point(point: Vector2) -> bool:
 func _physics_process(delta: float) -> void:
 	if leaving:
 		return
-	var push := _separation()
+	var push := _walker.separation(&"colonists")
 	match state:
 		State.MOVING:
 			if _follow_path(delta, speed, push):
@@ -121,7 +121,7 @@ func _wander(delta: float, push: Vector2) -> void:
 			_wandering = false
 			_stop()
 		return
-	_nudge(push)
+	_walker.nudge(push)
 	_wander_wait -= delta
 	if _wander_wait > 0.0:
 		return
@@ -155,30 +155,7 @@ func _set_path(point: Vector2) -> void:
 ## Walks along the path. Returns true when the path is finished or the colonist is stuck.
 ## The walker faces the path heading (its default), not the velocity: the push would make it flicker.
 func _follow_path(delta: float, move_speed: float, push: Vector2) -> bool:
-	return _walker.step(delta, move_speed, push * Worker.SEPARATION_SPEED)
-
-
-## Soft separation while standing: drift away from overlapping colonists (same as Worker._nudge).
-func _nudge(push: Vector2) -> void:
-	if push.length() < Worker.SEPARATION_DEADZONE:
-		velocity = Vector2.ZERO
-		return
-	velocity = push * Worker.SEPARATION_SPEED
-	move_and_slide()
-
-
-func _separation() -> Vector2:
-	var positions := PackedVector2Array()
-	var ids := PackedInt64Array()
-	for other in get_tree().get_nodes_in_group("colonists"):
-		if other == self:
-			continue
-		var other_pos: Vector2 = (other as Node2D).global_position
-		if global_position.distance_to(other_pos) >= Worker.SEPARATION_DISTANCE:
-			continue
-		positions.append(other_pos)
-		ids.append(other.get_instance_id())
-	return Worker.separation_push(global_position, get_instance_id(), positions, ids, Worker.SEPARATION_DISTANCE)
+	return _walker.step(delta, move_speed, push * PathWalker.SEPARATION_SPEED)
 
 
 func _stop() -> void:

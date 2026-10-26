@@ -20,9 +20,6 @@ const CRYSTAL_DARK := Color("0f6e86")
 const ICE_LIGHT := Color("e8f6ff")
 const ICE_MID := Color("b8dcf0")
 const ICE_DARK := Color("6fa3c4")
-const SEPARATION_DISTANCE := 24.0
-const SEPARATION_SPEED := 120.0
-const SEPARATION_DEADZONE := 0.02
 const BUILD_REACH := 48.0
 const BUILD_ANIM_FPS := 6.0
 const SPARK_HEIGHT := 22.0
@@ -118,7 +115,7 @@ func _process_build(delta: float, push: Vector2) -> void:
 			else:
 				_stop_building()
 		return
-	_nudge(push)
+	_walker.nudge(push)
 	_build_time += delta
 	_build_site.add_build_progress(delta)
 	_walker.face(area.get_center() - global_position)
@@ -244,7 +241,7 @@ func _begin_gathering() -> void:
 
 
 func _process_gathering(delta: float, push: Vector2) -> void:
-	_nudge(push)
+	_walker.nudge(push)
 	if not _node_alive(_gather_node):
 		if carry_amount > 0:
 			_go_to_dropoff(null)
@@ -337,24 +334,13 @@ func _footprint_rect(building: Building) -> Rect2:
 	return Rect2(Vector2(building.cell * Grid.TILE), Vector2(building.footprint * Grid.TILE))
 
 
-## Push away from neighbours closer than min_distance, 0..1 per neighbour by overlap.
-## Exact overlaps are split by instance id so the two robots move in opposite directions.
+## Kept for callers/tests; the implementation is shared in PathWalker.
 static func separation_push(pos: Vector2, self_id: int, others: PackedVector2Array, other_ids: PackedInt64Array, min_distance: float) -> Vector2:
-	var push := Vector2.ZERO
-	for i in others.size():
-		var away: Vector2 = pos - others[i]
-		var dist := away.length()
-		if dist >= min_distance:
-			continue
-		var dir: Vector2 = Vector2.RIGHT if self_id > other_ids[i] else Vector2.LEFT
-		if dist > 0.01:
-			dir = away / dist
-		push += dir * (min_distance - dist) / min_distance
-	return push
+	return PathWalker.separation_push(pos, self_id, others, other_ids, min_distance)
 
 
 func _physics_process(delta: float) -> void:
-	var push := _separation()
+	var push := _walker.separation(&"workers")
 	if _build_site and state != State.TO_BUILD and state != State.BUILDING:
 		_build_site = null
 		queue_redraw()
@@ -371,7 +357,7 @@ func _physics_process(delta: float) -> void:
 		State.TO_DROPOFF:
 			_process_to_dropoff(delta, push)
 		_:
-			_nudge(push)
+			_walker.nudge(push)
 
 
 func _set_path(point: Vector2) -> void:
@@ -381,35 +367,12 @@ func _set_path(point: Vector2) -> void:
 ## Walks along the path. Returns true when the path is finished or the robot is stuck.
 ## The walker faces the path heading (its default), not the velocity: the push would make it flicker.
 func _follow_path(delta: float, push: Vector2) -> bool:
-	return _walker.step(delta, speed, push * SEPARATION_SPEED)
+	return _walker.step(delta, speed, push * PathWalker.SEPARATION_SPEED)
 
 
 func _stop() -> void:
 	state = State.IDLE
 	_walker.stop()
-
-
-## Soft separation while not walking: drift away from overlapping robots.
-func _nudge(push: Vector2) -> void:
-	if push.length() < SEPARATION_DEADZONE:
-		velocity = Vector2.ZERO
-		return
-	velocity = push * SEPARATION_SPEED
-	move_and_slide()
-
-
-func _separation() -> Vector2:
-	var positions := PackedVector2Array()
-	var ids := PackedInt64Array()
-	for other in get_tree().get_nodes_in_group("workers"):
-		if other == self:
-			continue
-		var other_pos: Vector2 = (other as Node2D).global_position
-		if global_position.distance_to(other_pos) >= SEPARATION_DISTANCE:
-			continue
-		positions.append(other_pos)
-		ids.append(other.get_instance_id())
-	return separation_push(global_position, get_instance_id(), positions, ids, SEPARATION_DISTANCE)
 
 
 func _draw() -> void:
