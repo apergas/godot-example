@@ -10,21 +10,12 @@ const NavScript := preload("res://scripts/nav.gd")
 const GameStateScript := preload("res://scripts/game_state.gd")
 const PICK_RADIUS := 20.0
 const SPRITE_Y := -22.0
-const ARRIVE_DISTANCE := 4.0
-const STUCK_SECONDS := 0.5
-const WALK_FPS := 8.0
 const WANDER_TILES := 3
 const WANDER_SPEED_FACTOR := 0.5
 const WANDER_PAUSE_MIN := 2.0
 const WANDER_PAUSE_MAX := 5.0
 const VANISH_SECONDS := 0.4
 const SELECT_COLOR := Color(0.3, 1.0, 0.4)
-
-# Rows of the spritesheet (see art_src/make_colonist.gd); columns are walk phases.
-const ROW_DOWN := 0
-const ROW_UP := 1
-const ROW_SIDE := 2
-const PHASES := 4
 
 @export var speed := 140.0
 
@@ -37,16 +28,12 @@ var state: State = State.IDLE
 var home := Vector2.ZERO
 var leaving := false
 
-var _path := PackedVector2Array()
-var _path_index := 0
-var _stuck_time := 0.0
-var _walk_time := 0.0
-var _row := ROW_DOWN
 var _wandering := false
 var _wander_wait := 0.0
 var _rng := RandomNumberGenerator.new()
 
 @onready var _sprite: Sprite2D = $Sprite2D
+@onready var _walker := PathWalker.new(self, _sprite)
 
 
 func _enter_tree() -> void:
@@ -110,34 +97,37 @@ func contains_point(point: Vector2) -> bool:
 func _physics_process(delta: float) -> void:
 	if leaving:
 		return
+	var push := _walker.separation(&"colonists")
 	match state:
 		State.MOVING:
-			if _follow_path(delta, speed):
+			if _follow_path(delta, speed, push):
 				home = global_position
 				_stop()
 		State.BOARDING:
-			if _follow_path(delta, speed):
+			# No push while boarding: every colonist heads for the same ship and vanishes on arrival.
+			if _follow_path(delta, speed, Vector2.ZERO):
 				vanish()
 		State.IDLE:
-			_wander(delta)
+			_wander(delta, push)
 
 
 func _nav() -> NavScript:
 	return get_node_or_null("/root/Nav") as NavScript
 
 
-func _wander(delta: float) -> void:
+func _wander(delta: float, push: Vector2) -> void:
 	if _wandering:
-		if _follow_path(delta, speed * WANDER_SPEED_FACTOR):
+		if _follow_path(delta, speed * WANDER_SPEED_FACTOR, push):
 			_wandering = false
 			_stop()
 		return
+	_walker.nudge(push)
 	_wander_wait -= delta
 	if _wander_wait > 0.0:
 		return
 	_wander_wait = _rng.randf_range(WANDER_PAUSE_MIN, WANDER_PAUSE_MAX)
 	var target := _wander_target()
-	if target.distance_to(global_position) > ARRIVE_DISTANCE:
+	if target.distance_to(global_position) > PathWalker.ARRIVE_DISTANCE:
 		_set_path(target)
 		_wandering = true
 
@@ -159,68 +149,24 @@ func _wander_target() -> Vector2:
 
 
 func _set_path(point: Vector2) -> void:
-	var nav := _nav()
-	_path = nav.find_path(global_position, point) if nav != null else PackedVector2Array([point])
-	_path_index = 0
-	_stuck_time = 0.0
+	_walker.set_target(point)
 
 
-## Walks along _path. Returns true when the path is finished or the colonist is stuck.
-func _follow_path(delta: float, move_speed: float) -> bool:
-	if _path_index >= _path.size():
-		velocity = Vector2.ZERO
-		return true
-	var to_target := _path[_path_index] - global_position
-	if to_target.length() <= ARRIVE_DISTANCE:
-		_path_index += 1
-		if _path_index >= _path.size():
-			velocity = Vector2.ZERO
-			return true
-		to_target = _path[_path_index] - global_position
-	var dist := to_target.length()
-	var step := move_speed * delta
-	velocity = to_target / delta if dist < step else to_target / dist * move_speed
-	var before := global_position
-	move_and_slide()
-	if before.distance_to(global_position) < minf(step, dist) * 0.1:
-		_stuck_time += delta
-		if _stuck_time >= STUCK_SECONDS:
-			velocity = Vector2.ZERO
-			return true
-	else:
-		_stuck_time = 0.0
-	_face(velocity)
-	_walk_time += delta
-	_update_frame()
-	return false
+## Walks along the path. Returns true when the path is finished or the colonist is stuck.
+## The walker faces the path heading (its default), not the velocity: the push would make it flicker.
+func _follow_path(delta: float, move_speed: float, push: Vector2) -> bool:
+	return _walker.step(delta, move_speed, push * PathWalker.SEPARATION_SPEED)
 
 
 func _stop() -> void:
 	state = State.IDLE
-	_path = PackedVector2Array()
-	_path_index = 0
-	velocity = Vector2.ZERO
-	_walk_time = 0.0
 	_wander_wait = _rng.randf_range(WANDER_PAUSE_MIN, WANDER_PAUSE_MAX)
-	_update_frame()
+	_walker.stop()
 
 
 func _on_vanished() -> void:
 	boarded.emit()
 	queue_free()
-
-
-func _face(direction: Vector2) -> void:
-	if absf(direction.x) > absf(direction.y):
-		_row = ROW_SIDE
-		_sprite.flip_h = direction.x < 0.0
-	else:
-		_row = ROW_DOWN if direction.y > 0.0 else ROW_UP
-
-
-func _update_frame() -> void:
-	var phase := int(_walk_time * WALK_FPS) % PHASES
-	_sprite.frame = _row * PHASES + phase
 
 
 func _draw() -> void:

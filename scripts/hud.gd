@@ -17,7 +17,7 @@ const BUILDABLES := [
 	{"id": "Habitat", "name": "Habitáculo", "key": KEY_H, "scene": HABITAT_SCENE},
 	{"id": "CrystalDepot", "name": "Depósito de cristal", "key": KEY_C, "scene": CRYSTAL_DEPOT_SCENE},
 	{"id": "IceDepot", "name": "Depósito de hielo", "key": KEY_I, "scene": ICE_DEPOT_SCENE},
-	{"id": "Shipyard", "name": "Astillero", "key": KEY_S, "scene": SHIPYARD_SCENE},
+	{"id": "Shipyard", "name": "Astillero", "key": KEY_Y, "scene": SHIPYARD_SCENE},
 	{"id": "ColonyModule", "name": "Módulo de colonos", "key": KEY_M, "scene": COLONY_MODULE_SCENE},
 ]
 

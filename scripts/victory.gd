@@ -102,7 +102,13 @@ func _launch_ships() -> void:
 func _show_screen() -> void:
 	screen = SCREEN_SCENE.instantiate() as VictoryScreen
 	add_child(screen)
-	screen.setup(totals)
+	var shown := totals.duplicate()
+	# Read now, not in collect_totals(): MissionTracker completes the final mission on the victory signal.
+	var tracker := get_parent().get_node_or_null("MissionTracker") as MissionTracker
+	if tracker != null:
+		shown["missions"] = tracker.index
+		shown["missions_total"] = Missions.LIST.size()
+	screen.setup(shown)
 	screen.restart_requested.connect(_on_restart_requested)
 
 

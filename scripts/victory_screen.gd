@@ -8,6 +8,7 @@ signal restart_requested
 @onready var _ships_label: Label = %ShipsLabel
 @onready var _gathered_label: Label = %GatheredLabel
 @onready var _workers_label: Label = %WorkersLabel
+@onready var _missions_label: Label = %MissionsLabel
 @onready var _restart_button: Button = %RestartButton
 
 
@@ -21,6 +22,8 @@ func setup(totals: Dictionary) -> void:
 	_ships_label.text = "Naves lanzadas: %d" % int(totals.get("ships", 0))
 	_gathered_label.text = "Recogido: %d cristal · %d hielo" % [int(totals.get("crystal", 0)), int(totals.get("ice", 0))]
 	_workers_label.text = "Robots: %d" % int(totals.get("workers", 0))
+	_missions_label.visible = totals.has("missions")
+	_missions_label.text = "Misiones: %d/%d" % [int(totals.get("missions", 0)), int(totals.get("missions_total", 0))]
 
 
 static func format_time(seconds: float) -> String:

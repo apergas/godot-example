@@ -29,7 +29,7 @@ func _initialize() -> void:
 	var button := yard_panel.get_node("%ProduceButton") as Button
 	var queue_label := yard_panel.get_node("%QueueLabel") as Label
 	_check("shipyard_panel_texts", (yard_panel.get_node("%Title") as Label).text == "Astillero"
-			and button.text == "Nave (300 cristal · 200 hielo)" and queue_label.text == "Cola: 0/2", button.text)
+			and button.text == "Nave (360 cristal · 240 hielo)" and queue_label.text == "Cola: 0/2", button.text)
 	_check("disabled_without_money", button.disabled, "enabled with 50 crystal")
 
 	var requests: Array = []
@@ -48,7 +48,7 @@ func _initialize() -> void:
 	_check("colony_panel_shown", colony_panel.visible and not yard_panel.visible, "wrong panels")
 	var status := colony_panel.get_node("%StatusLabel") as Label
 	_check("colony_panel_texts", (colony_panel.get_node("%Title") as Label).text == "Módulo de colonos"
-			and (colony_panel.get_node("%ProduceButton") as Button).text == "Colono (25 cristal · 60 hielo)"
+			and (colony_panel.get_node("%ProduceButton") as Button).text == "Colono (30 cristal · 75 hielo)"
 			and (colony_panel.get_node("%QueueLabel") as Label).text == "Cola: 0/5", "texts")
 	module.enqueue()
 	module._process(1.0)

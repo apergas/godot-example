@@ -40,7 +40,7 @@ func _initialize() -> void:
 	fake_worker.add_to_group("workers")
 	root.add_child(fake_worker)
 	hud.show_for_selection([fake_worker])
-	_check("shipyard_text", yard_button.text == "Astillero [S]\n200 cristal · 100 hielo", yard_button.text)
+	_check("shipyard_text", yard_button.text == "Astillero [Y]\n200 cristal · 100 hielo", yard_button.text)
 	_check("shipyard_disabled_without_money", yard_button.disabled, "enabled with 50 crystal")
 	gs.add(ResKind.CRYSTAL, 1000)
 	gs.add(ResKind.ICE, 1000)
@@ -56,8 +56,11 @@ func _initialize() -> void:
 	hud._handle_build_keys(_key(KEY_M))
 	_check("b_m_ignored_without_shipyard", requested.is_empty(), str(requested))
 	var armed: bool = hud._handle_build_keys(_key(KEY_B))
-	var consumed: bool = hud._handle_build_keys(_key(KEY_S))
-	_check("b_s_requests_shipyard", armed and consumed and requested == [SHIPYARD], str(requested))
+	var consumed: bool = hud._handle_build_keys(_key(KEY_Y))
+	_check("b_y_requests_shipyard", armed and consumed and requested == [SHIPYARD], str(requested))
+	hud._handle_build_keys(_key(KEY_B))
+	hud._handle_build_keys(_key(KEY_S))
+	_check("b_s_does_not_request_shipyard", requested == [SHIPYARD] and hud.build_hotkey_scene(KEY_S) == null, str(requested))
 
 	var yard := (load(SHIPYARD) as PackedScene).instantiate() as Building
 	yard.position = Grid.footprint_origin(Vector2i(20, 10), yard.footprint)
@@ -72,8 +75,8 @@ func _initialize() -> void:
 	hud._handle_build_keys(_key(KEY_B))
 	hud._handle_build_keys(_key(KEY_M))
 	_check("b_m_requests_module", requested.size() == 2 and requested[1] == MODULE, str(requested))
-	_check("hotkey_table", hud.build_hotkey_scene(KEY_S).resource_path == SHIPYARD
-			and hud.build_hotkey_scene(KEY_M).resource_path == MODULE, "BUILD_HOTKEYS without S/M")
+	_check("hotkey_table", hud.build_hotkey_scene(KEY_Y).resource_path == SHIPYARD
+			and hud.build_hotkey_scene(KEY_M).resource_path == MODULE, "BUILD_HOTKEYS without Y/M")
 
 	yard.queue_free()
 	await create_timer(0.4).timeout

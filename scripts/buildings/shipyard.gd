@@ -6,8 +6,8 @@ class_name Shipyard extends Producer
 signal ship_spawned(ship: RescueShip)
 
 const NavScript := preload("res://scripts/nav.gd")
-const SHIP_COST := {ResKind.CRYSTAL: 300, ResKind.ICE: 200}
-const SHIP_SECONDS := 60.0
+const SHIP_COST := {ResKind.CRYSTAL: 360, ResKind.ICE: 240}
+const SHIP_SECONDS := 75.0
 const QUEUE_MAX := 2
 const PLATFORM_COUNT := 4
 const PLATFORM_SIZE := Vector2i(2, 2)
