@@ -7,8 +7,12 @@ signal build_requested(scene: PackedScene)
 const HOVER_OFFSET := Vector2(16, 20)
 const POP_FULL_COLOR := Color(1.0, 0.35, 0.3)
 const HABITAT_SCENE := preload("res://scenes/buildings/habitat.tscn")
+const CRYSTAL_DEPOT_SCENE := preload("res://scenes/buildings/crystal_depot.tscn")
+const ICE_DEPOT_SCENE := preload("res://scenes/buildings/ice_depot.tscn")
 const BUILDABLES := [
 	{"id": "Habitat", "name": "Habitáculo", "key": KEY_H, "scene": HABITAT_SCENE},
+	{"id": "CrystalDepot", "name": "Depósito de cristal", "key": KEY_C, "scene": CRYSTAL_DEPOT_SCENE},
+	{"id": "IceDepot", "name": "Depósito de hielo", "key": KEY_I, "scene": ICE_DEPOT_SCENE},
 ]
 
 var _hq: HQ = null
@@ -158,6 +162,13 @@ func _request_build(id: String) -> void:
 		if entry["id"] == id:
 			build_requested.emit(entry["scene"])
 			return
+
+
+func build_hotkey_scene(keycode: Key) -> PackedScene:
+	for entry in BUILDABLES:
+		if entry["key"] == keycode:
+			return entry["scene"]
+	return null
 
 
 func _handle_build_keys(event: InputEvent) -> bool:
