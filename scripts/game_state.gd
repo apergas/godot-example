@@ -7,6 +7,7 @@ signal goal_changed(colonists: int, ships: int)
 signal victory
 
 const MAX_CAP := 60
+const MAIN_SCENE := "res://scenes/main.tscn"
 const GOAL_COLONISTS := 20
 const GOAL_SHIPS := 4
 const START_STOCK := [50, 0]
@@ -103,3 +104,15 @@ func _update_goal() -> void:
 		return
 	victory_reached = true
 	victory.emit()
+
+
+## Frees the running game, resets the autoloads once it is gone, then loads a fresh main scene.
+func restart_game() -> void:
+	var tree := get_tree()
+	tree.paused = false
+	if tree.current_scene != null:
+		tree.current_scene.queue_free()
+	await tree.process_frame
+	reset()
+	get_node("/root/Nav").reset()
+	tree.change_scene_to_file(MAIN_SCENE)
