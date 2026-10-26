@@ -10,11 +10,15 @@ const WORKER_SCENE := preload("res://scenes/worker.tscn")
 @onready var _selection: Selection = $Selection
 @onready var _hud: CanvasLayer = $HUD
 @onready var _world: Node2D = $World
+@onready var _placement: Placement = $Placement
 
 
 func _ready() -> void:
 	_hud.connect("train_requested", _on_train_requested)
 	_selection.changed.connect(Callable(_hud, "show_for_selection"))
+	_placement.world = _world
+	_hud.connect("build_requested", Callable(_placement, "begin"))
+	_placement.placed.connect(_on_building_placed)
 	_spawn_resources()
 	var hq := _spawn_hq()
 	_spawn_workers()
@@ -26,6 +30,8 @@ func _process(_delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if _placement.active:
+		return
 	if event is InputEventMouseMotion:
 		_selection.update_drag(get_global_mouse_position())
 		return
@@ -41,6 +47,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				_selection.end_drag(point, button.shift_pressed)
 		MOUSE_BUTTON_RIGHT:
 			if button.pressed:
+				if _try_build_order(point):
+					return
 				command_move(point)
 
 
@@ -140,6 +148,29 @@ func _spawn_hq() -> HQ:
 	hq.position = Grid.footprint_origin(MapLayout.HQ_CELL, hq.footprint)
 	_world.add_child(hq)
 	return hq
+
+
+func _on_building_placed(building: Building) -> void:
+	for worker in _selected_workers():
+		worker.build(building)
+
+
+func _unfinished_building_at(point: Vector2) -> Building:
+	for node in get_tree().get_nodes_in_group("buildings"):
+		var building := node as Building
+		if building != null and not building.built and building.contains_point(point):
+			return building
+	return null
+
+
+func _try_build_order(point: Vector2) -> bool:
+	var site := _unfinished_building_at(point)
+	var builders := _selected_workers()
+	if site == null or builders.is_empty():
+		return false
+	for worker in builders:
+		worker.build(site)
+	return true
 
 
 func _spawn_workers() -> void:
