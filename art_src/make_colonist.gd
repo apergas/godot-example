@@ -5,6 +5,8 @@ extends SceneTree
 ## A human in a white and orange space suit with a round helmet and a gold visor.
 ## Run: tools\godot.cmd --headless --path . --script res://art_src/make_colonist.gd [-- preview.png]
 
+const Art := preload("res://art_src/art_lib.gd")
+
 const SIZE := 32
 const PHASES := 4
 const DIRECTIONS := 3
@@ -63,9 +65,9 @@ func _front(phase: int) -> Image:
 	_arms_facing_camera(img, phase)
 	# Suit torso with an orange chest panel and belt.
 	_box(img, 12, 14, 19, 22, SUIT_LIGHT, SUIT_MID, SUIT_DARK)
-	_rect(img, 14, 16, 17, 18, ORANGE_MID)
-	_rect(img, 14, 16, 15, 16, ORANGE_LIGHT)
-	_rect(img, 12, 21, 19, 21, ORANGE_DARK)
+	Art.rect(img, 14, 16, 17, 18, ORANGE_MID)
+	Art.rect(img, 14, 16, 15, 16, ORANGE_LIGHT)
+	Art.rect(img, 12, 21, 19, 21, ORANGE_DARK)
 	_helmet(img, true)
 	return img
 
@@ -77,8 +79,8 @@ func _back(phase: int) -> Image:
 	_box(img, 12, 14, 19, 22, SUIT_LIGHT, SUIT_MID, SUIT_DARK)
 	# Life-support pack with two oxygen bottles.
 	_box(img, 13, 14, 18, 21, ORANGE_LIGHT, ORANGE_MID, ORANGE_DARK)
-	_rect(img, 14, 15, 14, 20, SUIT_LIGHT)
-	_rect(img, 17, 15, 17, 20, SUIT_LIGHT)
+	Art.rect(img, 14, 15, 14, 20, SUIT_LIGHT)
+	Art.rect(img, 17, 15, 17, 20, SUIT_LIGHT)
 	_helmet(img, false)
 	return img
 
@@ -92,46 +94,46 @@ func _side(phase: int) -> Image:
 	var near_lift := 2 if phase == 1 else 0
 	var far_lift := 2 if phase == 3 else 0
 	_box(img, far_x, 23 - far_lift, far_x + 2, 27 - far_lift, SUIT_MID, SUIT_DARK, SUIT_DARK)
-	_rect(img, far_x, 26 - far_lift, far_x + 2, 27 - far_lift, ORANGE_DARK)
+	Art.rect(img, far_x, 26 - far_lift, far_x + 2, 27 - far_lift, ORANGE_DARK)
 	_box(img, near_x, 23 - near_lift, near_x + 2, 27 - near_lift, SUIT_LIGHT, SUIT_MID, SUIT_DARK)
-	_rect(img, near_x, 26 - near_lift, near_x + 2, 27 - near_lift, ORANGE_MID)
+	Art.rect(img, near_x, 26 - near_lift, near_x + 2, 27 - near_lift, ORANGE_MID)
 
 	# Life-support pack on the back (left side), then the torso.
 	_box(img, 9, 14, 11, 21, ORANGE_LIGHT, ORANGE_MID, ORANGE_DARK)
 	_box(img, 12, 14, 18, 22, SUIT_LIGHT, SUIT_MID, SUIT_DARK)
-	_rect(img, 12, 21, 18, 21, ORANGE_DARK)
+	Art.rect(img, 12, 21, 18, 21, ORANGE_DARK)
 
 	# Near arm swings opposite to the near leg.
 	var arm_dx := 2 if phase == 1 else (-2 if phase == 3 else 0)
 	_box(img, 14 + arm_dx, 15, 15 + arm_dx, 21, SUIT_LIGHT, SUIT_MID, SUIT_DARK)
-	_rect(img, 14 + arm_dx, 21, 15 + arm_dx, 22, ORANGE_MID)
+	Art.rect(img, 14 + arm_dx, 21, 15 + arm_dx, 22, ORANGE_MID)
 
 	# Helmet with the visor on the front (right side).
 	_shaded_ellipse(img, 16.0, 8.5, 5.5, 5.0, SUIT_LIGHT, SUIT_MID, SUIT_DARK)
-	_rect(img, 16, 6, 21, 10, OUTLINE)
-	_rect(img, 17, 7, 21, 9, VISOR_MID)
-	_rect(img, 17, 7, 18, 7, VISOR_LIGHT)
-	_rect(img, 19, 9, 21, 9, VISOR_DARK)
-	_rect(img, 13, 13, 18, 13, ORANGE_MID)
-	_rect(img, 15, 2, 16, 3, OUTLINE)
-	_put(img, 15, 2, ORANGE_LIGHT)
+	Art.rect(img, 16, 6, 21, 10, OUTLINE)
+	Art.rect(img, 17, 7, 21, 9, VISOR_MID)
+	Art.rect(img, 17, 7, 18, 7, VISOR_LIGHT)
+	Art.rect(img, 19, 9, 21, 9, VISOR_DARK)
+	Art.rect(img, 13, 13, 18, 13, ORANGE_MID)
+	Art.rect(img, 15, 2, 16, 3, OUTLINE)
+	Art.put(img, 15, 2, ORANGE_LIGHT)
 	return img
 
 
 ## Round helmet with an orange neck ring; from the front it shows the gold visor.
 func _helmet(img: Image, front: bool) -> void:
 	_shaded_ellipse(img, 15.5, 8.5, 5.5, 5.0, SUIT_LIGHT, SUIT_MID, SUIT_DARK)
-	_rect(img, 12, 13, 19, 13, ORANGE_MID)
+	Art.rect(img, 12, 13, 19, 13, ORANGE_MID)
 	if front:
-		_rect(img, 11, 6, 20, 10, OUTLINE)
-		_rect(img, 12, 7, 19, 9, VISOR_MID)
-		_rect(img, 12, 7, 14, 7, VISOR_LIGHT)
-		_rect(img, 17, 9, 19, 9, VISOR_DARK)
+		Art.rect(img, 11, 6, 20, 10, OUTLINE)
+		Art.rect(img, 12, 7, 19, 9, VISOR_MID)
+		Art.rect(img, 12, 7, 14, 7, VISOR_LIGHT)
+		Art.rect(img, 17, 9, 19, 9, VISOR_DARK)
 	else:
-		_rect(img, 13, 6, 18, 6, ORANGE_MID)
+		Art.rect(img, 13, 6, 18, 6, ORANGE_MID)
 	# Helmet lamp.
-	_rect(img, 15, 2, 16, 3, OUTLINE)
-	_put(img, 15, 2, ORANGE_LIGHT)
+	Art.rect(img, 15, 2, 16, 3, OUTLINE)
+	Art.put(img, 15, 2, ORANGE_LIGHT)
 
 
 func _legs_facing_camera(img: Image, phase: int) -> void:
@@ -142,7 +144,7 @@ func _legs_facing_camera(img: Image, phase: int) -> void:
 		var x0: int = x_for[i]
 		var lift: int = lift_for[i]
 		_box(img, x0, 23 - lift, x0 + 2, 27 - lift, SUIT_LIGHT, SUIT_MID, SUIT_DARK)
-		_rect(img, x0, 26 - lift, x0 + 2, 27 - lift, ORANGE_MID)
+		Art.rect(img, x0, 26 - lift, x0 + 2, 27 - lift, ORANGE_MID)
 
 
 func _arms_facing_camera(img: Image, phase: int) -> void:
@@ -153,49 +155,15 @@ func _arms_facing_camera(img: Image, phase: int) -> void:
 
 func _arm(img: Image, x0: int, dy: int) -> void:
 	_box(img, x0, 15 + dy, x0 + 1, 21 + dy, SUIT_LIGHT, SUIT_MID, SUIT_DARK)
-	_rect(img, x0, 21 + dy, x0 + 1, 22 + dy, ORANGE_MID)
-
-
-func _put(img: Image, x: int, y: int, color: Color) -> void:
-	if x >= 0 and y >= 0 and x < SIZE and y < SIZE:
-		img.set_pixel(x, y, color)
-
-
-func _rect(img: Image, x0: int, y0: int, x1: int, y1: int, color: Color) -> void:
-	for y in range(y0, y1 + 1):
-		for x in range(x0, x1 + 1):
-			_put(img, x, y, color)
+	Art.rect(img, x0, 21 + dy, x0 + 1, 22 + dy, ORANGE_MID)
 
 
 ## Outlined box whose edges are shaded: light on top/left, dark on bottom/right.
 func _box(img: Image, x0: int, y0: int, x1: int, y1: int,
 		light: Color, mid: Color, dark: Color) -> void:
-	_rect(img, x0 - 1, y0 - 1, x1 + 1, y1 + 1, OUTLINE)
-	_rect(img, x0, y0, x1, y1, mid)
-	_rect(img, x0, y0, x1, y0, light)
-	_rect(img, x0, y0, x0, y1, light)
-	_rect(img, x0, y1, x1, y1, dark)
-	_rect(img, x1, y0, x1, y1, dark)
-
-
-func _ellipse(img: Image, cx: float, cy: float, rx: float, ry: float, color: Color) -> void:
-	for y in SIZE:
-		for x in SIZE:
-			var dx := (x + 0.5 - cx) / rx
-			var dy := (y + 0.5 - cy) / ry
-			if dx * dx + dy * dy <= 1.0:
-				img.set_pixel(x, y, color)
+	Art.box(img, x0, y0, x1, y1, light, mid, dark, OUTLINE)
 
 
 func _shaded_ellipse(img: Image, cx: float, cy: float, rx: float, ry: float,
 		light: Color, mid: Color, dark: Color) -> void:
-	_ellipse(img, cx, cy, rx + 1.0, ry + 1.0, OUTLINE)
-	for y in SIZE:
-		for x in SIZE:
-			var dx := (x + 0.5 - cx) / rx
-			var dy := (y + 0.5 - cy) / ry
-			if dx * dx + dy * dy > 1.0:
-				continue
-			# Light comes from the top-left.
-			var t := -0.6 * dx - 0.8 * dy
-			img.set_pixel(x, y, light if t > 0.4 else (dark if t < -0.45 else mid))
+	Art.shaded_ellipse(img, cx, cy, rx, ry, light, mid, dark, OUTLINE)

@@ -4,24 +4,17 @@ extends SceneTree
 ## The ground contact point of every frame is pixel (16, 40); the baked shadow falls down-right.
 ## Run: tools\godot.cmd --headless --path . --script res://art_src/make_resources.gd [-- preview.png]
 
+const Art := preload("res://art_src/art_lib.gd")
+
 const W := 32
 const H := 48
 const FRAMES := 4
 const BASE_Y := 40
 const CENTER_X := 16
 
-const OUTLINE := Color("141d29")
-const SHADOW := Color(0.0, 0.0, 0.0, 0.35)
-const SAND := Color("b5532c")
 const DUST := Color("c96a3a")
 const ROCK_LIGHT := Color("7a3d29")
 const ROCK_DARK := Color("5e2f22")
-const CRYSTAL_LIGHT := Color("a8fbff")
-const CRYSTAL_MID := Color("38d8f0")
-const CRYSTAL_DARK := Color("0f6e86")
-const ICE_LIGHT := Color("e8f6ff")
-const ICE_MID := Color("b8dcf0")
-const ICE_DARK := Color("6fa3c4")
 const SPARK := Color("ffffff")
 
 # Shards, back to front: [center x, half width, height, lean of the tip in px].
@@ -44,14 +37,14 @@ const ICE_FRAMES := [
 func _initialize() -> void:
 	var crystal := _sheet(CRYSTAL_FRAMES, _crystal_frame)
 	var ice := _sheet(ICE_FRAMES, _ice_frame)
-	_save(crystal, "res://assets/crystal.png")
-	_save(ice, "res://assets/ice.png")
+	Art.save(crystal, "res://assets/crystal.png")
+	Art.save(ice, "res://assets/ice.png")
 
 	var args := OS.get_cmdline_user_args()
 	if args.size() > 0:
 		# Both sheets on sand, to judge the shadow against the real ground colour.
 		var preview := Image.create(W * FRAMES, H * 2, false, Image.FORMAT_RGBA8)
-		preview.fill(SAND)
+		preview.fill(Art.SAND)
 		preview.blend_rect(crystal, Rect2i(0, 0, W * FRAMES, H), Vector2i.ZERO)
 		preview.blend_rect(ice, Rect2i(0, 0, W * FRAMES, H), Vector2i(0, H))
 		preview.resize(preview.get_width() * 8, preview.get_height() * 8, Image.INTERPOLATE_NEAREST)
@@ -69,23 +62,16 @@ func _sheet(frames: Array, draw: Callable) -> Image:
 	return sheet
 
 
-func _save(img: Image, path: String) -> void:
-	var out := ProjectSettings.globalize_path(path)
-	DirAccess.make_dir_recursive_absolute(out.get_base_dir())
-	img.save_png(out)
-	print("saved ", out)
-
-
 ## Contact shadow plus the object's silhouette sheared down-right (length ~ half its height).
 func _with_shadow(obj: Image) -> Image:
 	var out := Image.create(W, H, false, Image.FORMAT_RGBA8)
-	_ellipse(out, CENTER_X + 0.5, BASE_Y + 0.5, 12.0, 3.0, SHADOW)
+	Art.ellipse(out, CENTER_X + 0.5, BASE_Y + 0.5, 12.0, 3.0, Art.SHADOW)
 	for y in range(0, BASE_Y + 1):
 		for x in W:
 			if obj.get_pixel(x, y).a == 0.0:
 				continue
 			var up := BASE_Y - y
-			_px(out, x + roundi(up * 0.4), BASE_Y + roundi(up * 0.25), SHADOW)
+			Art.put(out, x + roundi(up * 0.4), BASE_Y + roundi(up * 0.25), Art.SHADOW)
 	out.blend_rect(obj, Rect2i(0, 0, W, H), Vector2i.ZERO)
 	return out
 
@@ -103,9 +89,9 @@ func _ice_frame(img: Image, blocks: Array) -> void:
 
 ## Small rock mound the crystals grow from.
 func _mound(img: Image) -> void:
-	_ellipse(img, CENTER_X + 0.5, BASE_Y - 0.5, 12.0, 4.0, OUTLINE)
-	_ellipse(img, CENTER_X + 0.5, BASE_Y - 0.5, 11.0, 3.0, ROCK_DARK)
-	_ellipse(img, CENTER_X - 1.5, BASE_Y - 1.5, 7.0, 2.0, ROCK_LIGHT)
+	Art.ellipse(img, CENTER_X + 0.5, BASE_Y - 0.5, 12.0, 4.0, Art.OUTLINE)
+	Art.ellipse(img, CENTER_X + 0.5, BASE_Y - 0.5, 11.0, 3.0, ROCK_DARK)
+	Art.ellipse(img, CENTER_X - 1.5, BASE_Y - 1.5, 7.0, 2.0, ROCK_LIGHT)
 
 
 func _shard_mid(cx: int, lean: int, height: int, y: int) -> int:
@@ -123,60 +109,42 @@ func _shard(img: Image, cx: int, half_w: int, height: int, lean: int) -> void:
 			if y - top < tip:
 				hw = roundi(half_w * float(y - top) / tip)
 			if pass_index == 0:
-				_rect(img, mid - hw - 1, y - 1, mid + hw + 1, y + 1, OUTLINE)
+				Art.rect(img, mid - hw - 1, y - 1, mid + hw + 1, y + 1, Art.OUTLINE)
 				continue
 			for x in range(mid - hw, mid + hw + 1):
-				var c := CRYSTAL_MID
+				var c := Art.CRYSTAL_MID
 				if x < mid:
-					c = CRYSTAL_LIGHT
+					c = Art.CRYSTAL_LIGHT
 				elif x > mid:
-					c = CRYSTAL_DARK
-				_px(img, x, y, c)
+					c = Art.CRYSTAL_DARK
+				Art.put(img, x, y, c)
 	var spark_y := top + tip + 1
-	_px(img, _shard_mid(cx, lean, height, spark_y) - 1, spark_y, SPARK)
+	Art.put(img, _shard_mid(cx, lean, height, spark_y) - 1, spark_y, SPARK)
 
 
 ## Martian ice block in 3/4 view: frosty top face, front face with a crack and red dust at the foot.
 func _block(img: Image, x0: int, x1: int, bottom: int, front_h: int, depth: int) -> void:
 	var front_top := bottom - front_h + 1
 	var top_top := front_top - depth
-	_rect(img, x0 - 1, top_top - 1, x1 + 1, bottom + 1, OUTLINE)
+	Art.rect(img, x0 - 1, top_top - 1, x1 + 1, bottom + 1, Art.OUTLINE)
 	for y in range(top_top, front_top):
 		for x in range(x0, x1 + 1):
-			_px(img, x, y, SPARK if (x * 3 + y * 5) % 7 == 0 else ICE_LIGHT)
+			Art.put(img, x, y, SPARK if (x * 3 + y * 5) % 7 == 0 else Art.ICE_LIGHT)
 	for y in range(front_top, bottom + 1):
 		for x in range(x0, x1 + 1):
-			var c := ICE_MID
+			var c := Art.ICE_MID
 			if x == x0:
-				c = ICE_LIGHT
+				c = Art.ICE_LIGHT
 			elif x == x1 or y == bottom:
-				c = ICE_DARK
+				c = Art.ICE_DARK
 			elif (x + 2 * y) % 9 == 0:
-				c = ICE_LIGHT
-			_px(img, x, y, c)
-	_rect(img, x0, front_top, x1, front_top, SPARK)
+				c = Art.ICE_LIGHT
+			Art.put(img, x, y, c)
+	Art.rect(img, x0, front_top, x1, front_top, SPARK)
 	if front_h >= 8:
 		for i in 4:
-			_px(img, x0 + 3 + i, front_top + 2 + i, ICE_DARK)
+			Art.put(img, x0 + 3 + i, front_top + 2 + i, Art.ICE_DARK)
 	for x in range(x0 + 1, x1, 2):
-		_px(img, x, bottom, DUST)
+		Art.put(img, x, bottom, DUST)
 
 
-func _px(img: Image, x: int, y: int, color: Color) -> void:
-	if x >= 0 and y >= 0 and x < img.get_width() and y < img.get_height():
-		img.set_pixel(x, y, color)
-
-
-func _rect(img: Image, x0: int, y0: int, x1: int, y1: int, color: Color) -> void:
-	for y in range(y0, y1 + 1):
-		for x in range(x0, x1 + 1):
-			_px(img, x, y, color)
-
-
-func _ellipse(img: Image, cx: float, cy: float, rx: float, ry: float, color: Color) -> void:
-	for y in img.get_height():
-		for x in img.get_width():
-			var dx := (x + 0.5 - cx) / rx
-			var dy := (y + 0.5 - cy) / ry
-			if dx * dx + dy * dy <= 1.0:
-				img.set_pixel(x, y, color)
