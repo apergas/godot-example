@@ -38,6 +38,9 @@ func begin(scene: PackedScene) -> void:
 	proto.free()
 	active = true
 	update_cursor(get_global_mouse_position())
+	var hints := get_node_or_null("ResourceHints") as ResourceHints
+	if hints != null:
+		hints.show_for(scene)
 
 
 func cancel() -> void:
