@@ -1,0 +1,155 @@
+class_name Selection
+extends Node2D
+
+signal changed(items: Array)
+
+const GameStateScript := preload("res://scripts/game_state.gd")
+const CLICK_THRESHOLD := 6.0
+const UNIT_GROUPS := ["workers", "colonists"]
+# Selectable units have their origin at the feet; the body is drawn above it.
+const BODY_OFFSET := Vector2(0.0, -22.0)
+const FILL_COLOR := Color(0.3, 1.0, 0.4, 0.15)
+const BORDER_COLOR := Color(0.3, 1.0, 0.4, 0.9)
+const BORDER_WIDTH := 2.0
+
+var items: Array = []
+
+var _dragging := false
+var _start := Vector2.ZERO
+var _end := Vector2.ZERO
+
+
+func select(new_items: Array) -> void:
+	for item in items:
+		if is_instance_valid(item):
+			item.selected = false
+	var unique: Array = []
+	for item in new_items:
+		if is_instance_valid(item) and not unique.has(item):
+			unique.append(item)
+	items = unique
+	for item in items:
+		item.selected = true
+	var gs := get_node_or_null("/root/GameState") as GameStateScript
+	if gs:
+		for item in items:
+			if item.is_in_group("workers"):
+				gs.set_stat("selected_worker", 1)
+				break
+	changed.emit(items)
+
+
+func clear() -> void:
+	_dragging = false
+	queue_redraw()
+	select([])
+
+
+func begin_drag(p: Vector2) -> void:
+	_dragging = true
+	_start = p
+	_end = p
+	queue_redraw()
+
+
+func update_drag(p: Vector2) -> void:
+	if not _dragging:
+		return
+	_end = p
+	queue_redraw()
+
+
+func end_drag(p: Vector2, additive: bool) -> void:
+	if not _dragging:
+		return
+	_dragging = false
+	_end = p
+	queue_redraw()
+	var rect := drag_rect(_start, _end)
+	if _is_click(rect):
+		_click_select(p, additive)
+		return
+	var found := items_in_rect(rect, _unit_nodes())
+	var base: Array = _only_workers(items) if additive else []
+	select(base + found)
+
+
+func _click_select(p: Vector2, additive: bool) -> void:
+	# Priority: units, then ships, then buildings.
+	var hit: Node2D = pick_at(p, _unit_nodes())
+	if hit == null:
+		hit = pick_at(p, get_tree().get_nodes_in_group("ships"))
+	if hit == null:
+		hit = pick_at(p, get_tree().get_nodes_in_group("buildings"))
+	if hit == null:
+		select(_only_workers(items) if additive else [])
+		return
+	if _is_solo(hit) or not additive:
+		select([hit])
+		return
+	select(_only_workers(items) + [hit])
+
+
+static func drag_rect(a: Vector2, b: Vector2) -> Rect2:
+	return Rect2(a, b - a).abs()
+
+
+static func items_in_rect(rect: Rect2, nodes: Array) -> Array:
+	var result: Array = []
+	for node in nodes:
+		if not (node is Node2D):
+			continue
+		var feet: Vector2 = (node as Node2D).global_position
+		if rect.has_point(feet) or rect.has_point(feet + BODY_OFFSET):
+			result.append(node)
+	return result
+
+
+static func pick_at(p: Vector2, nodes: Array) -> Node2D:
+	var best: Node2D = null
+	for node in nodes:
+		if not (node is Node2D) or not node.has_method("contains_point"):
+			continue
+		if not node.contains_point(p):
+			continue
+		if best == null or (node as Node2D).global_position.y > best.global_position.y:
+			best = node
+	return best
+
+
+static func _only_workers(nodes: Array) -> Array:
+	var result: Array = []
+	for node in nodes:
+		if _is_unit(node):
+			result.append(node)
+	return result
+
+
+func _unit_nodes() -> Array:
+	var result: Array = []
+	for group: String in UNIT_GROUPS:
+		result.append_array(get_tree().get_nodes_in_group(group))
+	return result
+
+
+static func _is_unit(node) -> bool:
+	return is_instance_valid(node) and (node.is_in_group("workers") or node.is_in_group("colonists"))
+
+
+## Things selected on their own, never mixed with units: buildings and rescue ships.
+static func _is_solo(node) -> bool:
+	return is_instance_valid(node) and (node.is_in_group("buildings") or node.is_in_group("ships"))
+
+
+func _is_click(rect: Rect2) -> bool:
+	return rect.size.x < CLICK_THRESHOLD and rect.size.y < CLICK_THRESHOLD
+
+
+func _draw() -> void:
+	if not _dragging:
+		return
+	var rect := drag_rect(_start, _end)
+	if _is_click(rect):
+		return
+	draw_rect(rect, FILL_COLOR, true)
+	draw_rect(rect, BORDER_COLOR, false, BORDER_WIDTH)

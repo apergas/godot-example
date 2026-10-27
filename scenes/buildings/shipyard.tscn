@@ -1,0 +1,28 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/buildings/shipyard.gd" id="1_shipyard"]
+[ext_resource type="Texture2D" path="res://assets/shipyard.png" id="2_tex"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_shipyard"]
+size = Vector2(176, 176)
+
+[node name="Shipyard" type="StaticBody2D"]
+script = ExtResource("1_shipyard")
+footprint = Vector2i(3, 3)
+build_time = 30.0
+kind_id = "shipyard"
+cost = {
+0: 200,
+1: 100
+}
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(2, 2)
+texture = ExtResource("2_tex")
+centered = false
+offset = Vector2(-48, -136)
+hframes = 2
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -96)
+shape = SubResource("RectangleShape2D_shipyard")

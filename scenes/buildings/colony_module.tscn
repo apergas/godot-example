@@ -1,0 +1,29 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/buildings/colony_module.gd" id="1_module"]
+[ext_resource type="Texture2D" path="res://assets/colony_module.png" id="2_tex"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_module"]
+size = Vector2(176, 112)
+
+[node name="ColonyModule" type="StaticBody2D"]
+script = ExtResource("1_module")
+footprint = Vector2i(3, 2)
+build_time = 20.0
+cost = {
+0: 100,
+1: 150
+}
+kind_id = "colony_module"
+requires = Array[String](["shipyard"])
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(2, 2)
+texture = ExtResource("2_tex")
+centered = false
+offset = Vector2(-48, -104)
+hframes = 2
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -64)
+shape = SubResource("RectangleShape2D_module")

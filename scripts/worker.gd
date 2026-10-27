@@ -1,15 +1,28 @@
+class_name Worker
 extends CharacterBody2D
 
-const RADIUS := 20.0
-const ARRIVE_DISTANCE := 4.0
-const FEET_Y := 22.0
-const WALK_FPS := 8.0
+enum State { IDLE, MOVING, TO_RESOURCE, GATHERING, TO_DROPOFF, TO_BUILD, BUILDING }
 
-# Rows of the spritesheet (see art_src/make_worker.gd); columns are walk phases.
-const ROW_DOWN := 0
-const ROW_UP := 1
-const ROW_SIDE := 2
-const PHASES := 4
+const NavScript := preload("res://scripts/nav.gd")
+const GameStateScript := preload("res://scripts/game_state.gd")
+const RADIUS := 20.0
+# The origin is at the feet; the body (and the sprite centre) sits above it.
+const BODY_OFFSET := Vector2(0.0, -22.0)
+const CARRY_MAX := 10
+const GATHER_SECONDS := {ResKind.CRYSTAL: 3.0, ResKind.ICE: 4.0}
+const GATHER_RANGE := 96.0
+const DROPOFF_RANGE := 48.0
+const SEARCH_TILES := 6
+const CARGO_Y := -64.0
+const CRYSTAL_LIGHT := Color("a8fbff")
+const CRYSTAL_MID := Color("38d8f0")
+const CRYSTAL_DARK := Color("0f6e86")
+const ICE_LIGHT := Color("e8f6ff")
+const ICE_MID := Color("b8dcf0")
+const ICE_DARK := Color("6fa3c4")
+const BUILD_REACH := 48.0
+const BUILD_ANIM_FPS := 6.0
+const SPARK_HEIGHT := 22.0
 
 @export var speed := 180.0
 
@@ -18,56 +31,375 @@ var selected := false:
 		selected = value
 		queue_redraw()
 
-var _target := Vector2.ZERO
-var _moving := false
-var _walk_time := 0.0
-var _row := ROW_DOWN
+var state: State = State.IDLE
+var carry_kind: int = -1
+var carry_amount: int = 0
+
+var _gather_node: ResourceNode = null
+var _gather_kind := -1
+var _gather_pos := Vector2.ZERO
+var _gather_time := 0.0
+var _dropoff: Building = null
+var _build_site: Building
+var _build_repathed := false
+var _build_time := 0.0
 
 @onready var _sprite: Sprite2D = $Sprite2D
+@onready var _walker := PathWalker.new(self, _sprite)
+
+
+func _ready() -> void:
+	add_to_group("workers")
+
+
+func _enter_tree() -> void:
+	var game := get_node_or_null("/root/GameState") as GameStateScript
+	if game != null:
+		game.add_population(1)
+
+
+func _exit_tree() -> void:
+	var game := get_node_or_null("/root/GameState") as GameStateScript
+	if game != null:
+		game.add_population(-1)
 
 
 func move_to(point: Vector2) -> void:
-	_target = point
-	_moving = true
+	_gather_node = null
+	_gather_kind = -1
+	_dropoff = null
+	_set_path(point)
+	state = State.MOVING
+
+
+func build(site: Building) -> void:
+	if not _node_alive(site) or site.built:
+		return
+	_gather_node = null
+	_gather_kind = -1
+	_dropoff = null
+	_build_site = site
+	_build_time = 0.0
+	_build_repathed = false
+	_set_build_path()
+	state = State.TO_BUILD
+
+
+func _set_build_path() -> void:
+	var nav := get_node_or_null("/root/Nav") as NavScript
+	var target := _site_area().get_center()
+	if nav != null:
+		target = nav.approach_point(_build_site.cell_rect(), global_position)
+	_set_path(target)
+
+
+## In reach of the site from outside its footprint (never from inside the building).
+func _in_build_reach(area: Rect2) -> bool:
+	return not area.has_point(global_position) and area.grow(BUILD_REACH).has_point(global_position)
+
+
+func _process_build(delta: float, push: Vector2) -> void:
+	if not _node_alive(_build_site) or _build_site.built:
+		_stop_building()
+		return
+	var area := _site_area()
+	if state == State.TO_BUILD:
+		if _in_build_reach(area):
+			_begin_building()
+		elif _follow_path(delta, push):
+			if _in_build_reach(area):
+				_begin_building()
+			elif not _build_repathed:
+				_build_repathed = true
+				_set_build_path()
+			else:
+				_stop_building()
+		return
+	_walker.nudge(push)
+	_build_time += delta
+	_build_site.add_build_progress(delta)
+	_walker.face(area.get_center() - global_position)
+	_sprite.frame = _walker.row * PathWalker.PHASES + int(_build_time * BUILD_ANIM_FPS) % 2
+	queue_redraw()
+	if _build_site.built:
+		_stop_building()
+
+
+func _begin_building() -> void:
+	state = State.BUILDING
+	_walker.clear()
+	velocity = Vector2.ZERO
+
+
+func _stop_building() -> void:
+	_build_site = null
+	_walker.stop()
+	state = State.IDLE
+	queue_redraw()
+
+
+func _site_area() -> Rect2:
+	return _footprint_rect(_build_site)
+
+
+func _draw_build_spark() -> void:
+	if state != State.BUILDING or not _node_alive(_build_site):
+		return
+	if int(_build_time * BUILD_ANIM_FPS) % 2 == 0:
+		return
+	var toward := (_site_area().get_center() - global_position).normalized()
+	var at := Vector2(0.0, -SPARK_HEIGHT) + toward * 20.0
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	draw_circle(at, 4.0, Color(1.0, 0.76, 0.35))
+	draw_circle(at, 2.0, Color(1.0, 1.0, 0.85))
 
 
 func contains_point(point: Vector2) -> bool:
-	return global_position.distance_to(point) <= RADIUS + 4.0
+	return (global_position + BODY_OFFSET).distance_to(point) <= RADIUS + 4.0
+
+
+func gather(node: ResourceNode) -> void:
+	if not _node_alive(node):
+		return
+	if carry_amount > 0 and carry_kind != node.kind:
+		carry_amount = 0
+		carry_kind = -1
+		queue_redraw()
+	_gather_node = node
+	_gather_kind = node.kind
+	_gather_pos = node.global_position
+	if carry_amount >= CARRY_MAX:
+		_go_to_dropoff(null)
+	else:
+		_go_to_resource()
+
+
+func return_cargo(building: Building = null) -> void:
+	if carry_amount <= 0:
+		return
+	_go_to_dropoff(building)
+
+
+func _nearest_dropoff(kind: int) -> Building:
+	var best: Building = null
+	var best_dist := INF
+	for node in get_tree().get_nodes_in_group("dropoffs"):
+		var building := node as Building
+		if building == null or not building.accepts(kind):
+			continue
+		var d := global_position.distance_squared_to(_footprint_rect(building).get_center())
+		if d < best_dist:
+			best_dist = d
+			best = building
+	return best
+
+
+func _go_to_resource() -> void:
+	var nav := get_node_or_null("/root/Nav") as NavScript
+	var target := _node_center()
+	if nav != null:
+		target = nav.approach_point(Rect2i(_gather_node.cell, Vector2i.ONE), global_position)
+	_set_path(target)
+	state = State.TO_RESOURCE
+
+
+func _go_to_dropoff(preferred: Building) -> void:
+	if preferred != null and preferred.accepts(carry_kind):
+		_dropoff = preferred
+	else:
+		_dropoff = _nearest_dropoff(carry_kind)
+	if _dropoff == null:
+		_stop()
+		return
+	var nav := get_node_or_null("/root/Nav") as NavScript
+	var target := _footprint_rect(_dropoff).get_center()
+	if nav != null:
+		target = nav.approach_point(_dropoff.cell_rect(), global_position)
+	_set_path(target)
+	state = State.TO_DROPOFF
+
+
+func _process_to_resource(delta: float, push: Vector2) -> void:
+	if not _node_alive(_gather_node):
+		_retarget()
+		return
+	if global_position.distance_to(_node_center()) <= GATHER_RANGE:
+		_begin_gathering()
+		return
+	if _follow_path(delta, push):
+		if global_position.distance_to(_node_center()) <= GATHER_RANGE * 1.5:
+			_begin_gathering()
+		else:
+			_stop()
+
+
+func _begin_gathering() -> void:
+	state = State.GATHERING
+	_gather_time = 0.0
+	_walker.face(_node_center() - global_position)
+	_walker.stop()
+
+
+func _process_gathering(delta: float, push: Vector2) -> void:
+	_walker.nudge(push)
+	if not _node_alive(_gather_node):
+		if carry_amount > 0:
+			_go_to_dropoff(null)
+		else:
+			_retarget()
+		return
+	_gather_time += delta
+	var interval: float = GATHER_SECONDS[_gather_kind] / CARRY_MAX
+	while _gather_time >= interval and carry_amount < CARRY_MAX and _node_alive(_gather_node):
+		_gather_time -= interval
+		var got := _gather_node.take(1)
+		if got <= 0:
+			break
+		carry_kind = _gather_kind
+		carry_amount += got
+		queue_redraw()
+	if carry_amount >= CARRY_MAX:
+		_go_to_dropoff(null)
+
+
+func _process_to_dropoff(delta: float, push: Vector2) -> void:
+	if not is_instance_valid(_dropoff) or not _dropoff.accepts(carry_kind):
+		_go_to_dropoff(null)
+		return
+	if _footprint_rect(_dropoff).grow(DROPOFF_RANGE).has_point(global_position):
+		_deliver()
+		return
+	if _follow_path(delta, push):
+		if _footprint_rect(_dropoff).grow(DROPOFF_RANGE * 2.0).has_point(global_position):
+			_deliver()
+		else:
+			_stop()
+
+
+func _deliver() -> void:
+	var game := get_node_or_null("/root/GameState") as GameStateScript
+	if game != null:
+		game.add(carry_kind, carry_amount, true)
+	carry_amount = 0
+	carry_kind = -1
+	_dropoff = null
+	queue_redraw()
+	if _node_alive(_gather_node):
+		_go_to_resource()
+	elif _gather_kind >= 0:
+		_retarget()
+	else:
+		_stop()
+
+
+## The current node is gone: move on to the nearest node of the same kind around it.
+func _retarget() -> void:
+	var next := _find_resource_near(_gather_kind, _gather_pos)
+	if next == null:
+		_gather_node = null
+		_gather_kind = -1
+		if carry_amount > 0:
+			_go_to_dropoff(null)
+		else:
+			_stop()
+		return
+	_gather_node = next
+	_gather_pos = next.global_position
+	_go_to_resource()
+
+
+func _find_resource_near(kind: int, center: Vector2) -> ResourceNode:
+	var best: ResourceNode = null
+	var best_dist := float(SEARCH_TILES * Grid.TILE)
+	for node in get_tree().get_nodes_in_group("resources"):
+		var res := node as ResourceNode
+		if res == null or res.kind != kind or res.amount <= 0 or res.is_queued_for_deletion():
+			continue
+		var d := center.distance_to(res.global_position)
+		if d <= best_dist:
+			best_dist = d
+			best = res
+	return best
+
+
+func _node_alive(node: Variant) -> bool:
+	return is_instance_valid(node) and not node.is_queued_for_deletion()
+
+
+func _node_center() -> Vector2:
+	return Grid.cell_to_world(_gather_node.cell)
+
+
+func _footprint_rect(building: Building) -> Rect2:
+	return Rect2(Vector2(building.cell * Grid.TILE), Vector2(building.footprint * Grid.TILE))
+
+
+## Kept for callers/tests; the implementation is shared in PathWalker.
+static func separation_push(pos: Vector2, self_id: int, others: PackedVector2Array, other_ids: PackedInt64Array, min_distance: float) -> Vector2:
+	return PathWalker.separation_push(pos, self_id, others, other_ids, min_distance)
 
 
 func _physics_process(delta: float) -> void:
-	if not _moving:
-		return
-	var offset := _target - global_position
-	if offset.length() <= ARRIVE_DISTANCE:
-		_moving = false
-		velocity = Vector2.ZERO
-		_walk_time = 0.0
-		_update_frame()
-		return
-	velocity = offset.normalized() * speed
-	move_and_slide()
-	_face(velocity)
-	_walk_time += delta
-	_update_frame()
+	var push := _walker.separation(&"workers")
+	if _build_site and state != State.TO_BUILD and state != State.BUILDING:
+		_build_site = null
+		queue_redraw()
+	match state:
+		State.TO_BUILD, State.BUILDING:
+			_process_build(delta, push)
+		State.MOVING:
+			if _follow_path(delta, push):
+				_stop()
+		State.TO_RESOURCE:
+			_process_to_resource(delta, push)
+		State.GATHERING:
+			_process_gathering(delta, push)
+		State.TO_DROPOFF:
+			_process_to_dropoff(delta, push)
+		_:
+			_walker.nudge(push)
 
 
-func _face(direction: Vector2) -> void:
-	if absf(direction.x) > absf(direction.y):
-		_row = ROW_SIDE
-		_sprite.flip_h = direction.x < 0.0
-	else:
-		_row = ROW_DOWN if direction.y > 0.0 else ROW_UP
+func _set_path(point: Vector2) -> void:
+	_walker.set_target(point)
 
 
-func _update_frame() -> void:
-	var phase := int(_walk_time * WALK_FPS) % PHASES
-	_sprite.frame = _row * PHASES + phase
+## Walks along the path. Returns true when the path is finished or the robot is stuck.
+## The walker faces the path heading (its default), not the velocity: the push would make it flicker.
+func _follow_path(delta: float, push: Vector2) -> bool:
+	return _walker.step(delta, speed, push * PathWalker.SEPARATION_SPEED)
+
+
+func _stop() -> void:
+	state = State.IDLE
+	_walker.stop()
 
 
 func _draw() -> void:
-	# Both shapes are flattened ellipses on the ground, to match the 3/4 view.
-	draw_set_transform(Vector2(0.0, FEET_Y), 0.0, Vector2(1.0, 0.35))
+	# Both shapes are flattened ellipses on the ground at the feet, to match the 3/4 view.
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2(1.0, 0.35))
 	draw_circle(Vector2.ZERO, 17.0, Color(0.0, 0.0, 0.0, 0.35))
 	if selected:
 		draw_arc(Vector2.ZERO, RADIUS + 8.0, 0.0, TAU, 32, Color(0.3, 1.0, 0.4), 2.0)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	if carry_amount > 0:
+		_draw_cargo(Vector2(0.0, CARGO_Y))
+	_draw_build_spark()
+
+
+## Small crystal or ice block floating over the head while the robot carries something.
+func _draw_cargo(at: Vector2) -> void:
+	if carry_kind == ResKind.CRYSTAL:
+		draw_colored_polygon(PackedVector2Array([
+			at + Vector2(0, -10), at + Vector2(8, -2), at + Vector2(0, 10), at + Vector2(-8, -2),
+		]), CRYSTAL_DARK)
+		draw_colored_polygon(PackedVector2Array([
+			at + Vector2(0, -8), at + Vector2(6, -2), at + Vector2(0, 8), at + Vector2(-6, -2),
+		]), CRYSTAL_MID)
+		draw_colored_polygon(PackedVector2Array([
+			at + Vector2(0, -8), at + Vector2(0, 8), at + Vector2(-6, -2),
+		]), CRYSTAL_LIGHT)
+	else:
+		draw_rect(Rect2(at - Vector2(8, 6), Vector2(16, 12)), ICE_DARK)
+		draw_rect(Rect2(at - Vector2(6, 4), Vector2(12, 8)), ICE_MID)
+		draw_rect(Rect2(at - Vector2(6, 4), Vector2(12, 2)), ICE_LIGHT)
